@@ -6,27 +6,33 @@ sys.path.insert(0, '../tests')
 import cw_dcp
 import configparser
 
-config = configparser.ConfigParser()
-config.read('testconfig.ini')
-iface = config.get('BasicConfigurations', 'interface')
-devices = []
 
+class TestDCPIdentify:
+    config = configparser.ConfigParser()
+    config.read('testconfig.ini')
+    iface = config.get('BasicConfigurations', 'interface')
+    mac = config.get('BasicConfigurations', 'mac')
+    devices = []
 
-def test_identify_all_devices():
-    assert iface
-    dcp = cw_dcp.CodewerkDCP(iface)
-    devices = dcp.identify_all()
-    assert devices
+    def test_identify_all_devices(self):
+        assert self.iface, 'Network interface is not set'
+        assert self.mac, 'MAC-Address is not set'
+        dcp = cw_dcp.CodewerkDCP(self.iface, self.mac)
+        devices = dcp.identify_all()
+        assert devices, 'No devices identified'
+        for device in devices:
+            print(device.MAC)
 
+    # @pytest.mark.skipif(len(devices) == 0, reason='No devices identified in the interface {}'.format(iface))
+    # @pytest.mark.parametrize('index', range(len(devices)))
+    def test_identify_device(self):
+        assert self.iface, 'Network interface is not set'
+        dcp = cw_dcp.CodewerkDCP(self.iface, self.mac)
+        for device in self.devices:
+            dcp.identify(device.MAC)
+            identified = dcp.read_response()
+            assert identified == device
 
-@pytest.mark.skipif(len(devices) == 0, reason='No devices identified in the interface {}'.format(iface))
-@pytest.mark.parametrize('index', range(len(devices)))
-def test_identify_device(index):
-    dcp = cw_dcp.CodewerkDCP(iface)
-    dcp.rec_mac = devices[index].MAC
-    dcp.identify()
-    dcp.read_response()
-    assert iface
 
 
 

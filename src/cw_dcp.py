@@ -1,7 +1,6 @@
 import sys
 sys.path.insert(0, '../src')
 from scapy.all import *
-from profinet_dcp.dcp import *
 from profinet_dcp.util import *
 from profinet_dcp.protocol import *
 import binascii
@@ -17,32 +16,77 @@ class Device:
 
 
 class CodewerkDCP:
-    def __init__(self, iface):
+    def __init__(self, iface, mac):
         self.devices = []
         self.dst_mac = ''
         self.iface = iface
         # self.src_mac = Ether().src  # 00:50:56:ac:28:4e
-        self.src_mac = '00:50:56:ac:dd:2e'
+        self.src_mac = mac
         self.s = conf.L2socket(iface=iface)
+
+        self.frame = None
+        self.service = None
+        self.service_type = None
 
     def identify_all(self):
         self.dst_mac = '01:0e:cf:00:00:00'
+        self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
         self.send_request(0xFF, 0xFF, 0)
         return self.read_response()
 
-    def identify(self, mac, opt, subopt, length):
+    # def identify(self, mac, opt, subopt, length):
+    def identify(self, mac):
         self.dst_mac = mac
-        self.send_request(opt, subopt, length)
+        self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
+        self.send_request(0xFF, 0xFF, 0)
         return self.read_response()
 
-    def send_request(self, opt, subopt, length):
-        block = PNDCPBlockRequest(opt, subopt, length, bytes())
-        dcp = PNDCPHeader(0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST, 0x7010052, 0x0080, len(block), payload=block)
+    def set_ip_address(self, mac, ip):
+        self.dst_mac = mac
+        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
+        self.send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], len(ip)+2+(1 if len(value) % 2 == 1 else 0), ip)
+        time.sleep(2)
+
+    def set_name_of_station(self, mac, name):
+        self.dst_mac = mac
+        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
+        self.send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2+(1 if len(value) % 2 == 1 else 0), name)
+        time.sleep(2)
+
+    def get_param(self, mac, param):
+        self.dst_mac = mac
+        if param == 'name':
+            param = PNDCPBlock.NAME_OF_STATION
+        elif param == 'ip':
+            param = PNDCPBlock.IP_ADDRESS
+        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
+        self.send_request(param[0], param[1], 0)
+        return list(self.read_response(once=True, debug=False, get=True).values())[0][param]
+
+    def get_ip_address(self, mac):
+        self.dst_mac = mac
+        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
+        self.send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], 0)
+        return list(self.read_response(once=True, debug=False, get=True).values())[0]['ip']
+
+    def get_name_of_station(self, mac):
+        self.dst_mac = mac
+        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
+        self.send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], 0)
+        return list(self.read_response(once=True, debug=False, get=True).values())[0][PNDCPBlock.NAME_OF_STATION].decode()
+
+    def send_request(self, opt, subopt, length, value=None):
+        if not value:
+            block_content = bytes()
+        else:
+            block_content = bytes([0x00, 0x00]) + bytes(value, encoding='ascii')
+        block = PNDCPBlockRequest(opt, subopt, length, block_content)
+        dcp = PNDCPHeader(self.frame, self.service, self.service_type, 0x7010052, 0x0080, len(block), payload=block)
         eth = EthernetVLANHeader(s2mac(self.dst_mac), s2mac(self.src_mac), 0x8892, payload=dcp)
 
         self.s.send(bytes(eth))
 
-    def read_response(self, to=20, once=False, debug=True):
+    def read_response(self, to=20, once=False, debug=True, get=False):
         ret = {}
         found = []
         try:
@@ -87,7 +131,6 @@ class CodewerkDCP:
                             device.NameOfStation = block.payload.decode()
                         elif blockoption == PNDCPBlock.IP_ADDRESS:
                             debug and print(str(block.parse_ip()))
-                            print(str(block.parse_ip()))
                             parsed["ip"] = s2ip(block.payload[0:4])
                             device.IP = s2ip(block.payload[0:4])
                             device.Netmask = s2ip(block.payload[4:8])
@@ -110,4 +153,7 @@ class CodewerkDCP:
         except TimeoutError:
             pass
 
-        return found
+        if get:
+            return ret
+        else:
+            return found
