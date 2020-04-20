@@ -44,24 +44,15 @@ class CodewerkDCP:
     def set_ip_address(self, mac, ip):
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
-        self.send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], len(ip)+2+(1 if len(value) % 2 == 1 else 0), ip)
+        self.send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], len(ip)+2, ip)
         time.sleep(2)
 
     def set_name_of_station(self, mac, name):
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
-        self.send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2+(1 if len(value) % 2 == 1 else 0), name)
+        self.send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2, name)
         time.sleep(2)
-
-    def get_param(self, mac, param):
-        self.dst_mac = mac
-        if param == 'name':
-            param = PNDCPBlock.NAME_OF_STATION
-        elif param == 'ip':
-            param = PNDCPBlock.IP_ADDRESS
-        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
-        self.send_request(param[0], param[1], 0)
-        return list(self.read_response(once=True, debug=False, get=True).values())[0][param]
+        self.read_response(once=True, debug=False, get=False)
 
     def get_ip_address(self, mac):
         self.dst_mac = mac
@@ -73,20 +64,20 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
         self.send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], 0)
-        return list(self.read_response(once=True, debug=False, get=True).values())[0][PNDCPBlock.NAME_OF_STATION].decode()
+        return list(self.read_response(once=True, debug=False, get=True).values())[0]['name'].decode()
 
     def send_request(self, opt, subopt, length, value=None):
         if not value:
             block_content = bytes()
         else:
-            block_content = bytes([0x00, 0x00]) + bytes(value, encoding='ascii')
+            block_content = bytes([0x00, 0x01]) + bytes(value, encoding='ascii')
+            block_length = len(value) + 6 + (1 if len(value) % 2 == 1 else 0)
         block = PNDCPBlockRequest(opt, subopt, length, block_content)
-        dcp = PNDCPHeader(self.frame, self.service, self.service_type, 0x7010052, 0x0080, len(block), payload=block)
+        dcp = PNDCPHeader(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length if value else len(block), payload=block)
         eth = EthernetVLANHeader(s2mac(self.dst_mac), s2mac(self.src_mac), 0x8892, payload=dcp)
-
         self.s.send(bytes(eth))
 
-    def read_response(self, to=20, once=False, debug=True, get=False):
+    def read_response(self, to=50, once=False, debug=True, get=False):
         ret = {}
         found = []
         try:
@@ -105,7 +96,6 @@ class CodewerkDCP:
                     eth = EthernetHeader(data)
                     if mac2s(eth.dst) != self.src_mac or eth.type != PNDCPHeader.ETHER_TYPE:
                         continue
-                    print()
                     debug and print("MAC address:", mac2s(eth.src))
 
                     pro = PNDCPHeader(eth.payload)
