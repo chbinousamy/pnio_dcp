@@ -1,11 +1,12 @@
 import pytest
 import sys
-sys.path.insert(0, '../src')
-sys.path.insert(0, '../src/profinet_dcp')
-sys.path.insert(0, '../tests')
+import os
+myPath = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, myPath + '/../src')
+sys.path.insert(0, myPath + '/../src/profinet_dcp')
+sys.path.insert(0, myPath + '/../tests')
 import cw_dcp
 import configparser
-import time
 
 
 class TestDCPGetSet:
@@ -18,6 +19,7 @@ class TestDCPGetSet:
 
     def test_get_ip(self):
         assert self.devices
+        print()
         for device in self.devices:
             ip = self.dcp.get_ip_address(device.MAC)
             assert ip
@@ -25,41 +27,27 @@ class TestDCPGetSet:
 
     def test_get_name(self):
         assert self.devices
-        name = self.dcp.get_name_of_station('08:00:06:02:01:27')
-        assert name
-        print(name)
-        # for device in self.devices:
-        #     name = self.dcp.get_name_of_station(device.MAC)
-        #     assert name
-        #     print(name)
+        print()
+        for device in self.devices:
+            name = self.dcp.get_name_of_station(device.MAC)
+            assert name
+            print(device.MAC, ' ', name)
 
     def test_set_ip(self):
         assert self.devices
-        for device in self.devices:
-            valid_ip = self.dcp.get_ip_address(device.MAC)
-            self.dcp.set_ip_address(device.MAC, '10.0.1.36')
-            ip_tmp = self.dcp.get_ip_address(device.MAC)
-            assert ip_tmp != valid_ip
-            print('{} != {}')
-            self.dcp.set_ip_address(device.MAC, valid_ip)
-            ip = self.dcp.get_ip_address(device.MAC)
-            assert ip == valid_ip
-            print('{} == {}')
-            print()
+        for idx in range(len(self.devices)):
+            valid_ip = self.dcp.get_ip_address(self.devices[idx].MAC)
+            err_msg = self.dcp.set_ip_address(self.devices[idx].MAC, ['10.0.0.31', '255.255.240.0', '10.0.0.1'])
+            ip_tmp = self.dcp.get_ip_address(self.devices[idx].MAC)
+            if err_msg is None:
+                assert ip_tmp != valid_ip
+                self.dcp.set_ip_address(self.devices[idx].MAC, [valid_ip, '255.255.240.0', '10.0.0.1'])
+                ip = self.dcp.get_ip_address(self.devices[idx].MAC)
+                assert ip == valid_ip
 
-    # Works only for 08:00:06:02:01:27
     def test_set_name(self):
         assert self.devices
-        dst_mac = '08:00:06:02:01:27'
-        # self.dcp.set_name_of_station(dst_mac, 'new-name')
-        # for device in self.devices:
-        valid_name = self.dcp.get_name_of_station(dst_mac)
-        self.dcp.set_name_of_station(dst_mac, 'new-name')
-        name_tmp = self.dcp.get_name_of_station(dst_mac)
-        assert name_tmp != valid_name
-        print('{} != {}'.format(name_tmp, valid_name))
-        self.dcp.set_name_of_station(dst_mac, valid_name)
-        name = self.dcp.get_name_of_station(dst_mac)
-        assert name == valid_name
-        print('{} == {}'.format(name, valid_name))
         print()
+        for idx in range(len(self.devices)):
+            msg = self.dcp.set_name_of_station(self.devices[idx].MAC, 'name-{}'.format(idx))
+            print('{} -- {}'.format(self.devices[idx].MAC, msg))
