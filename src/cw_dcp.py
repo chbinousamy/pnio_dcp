@@ -34,6 +34,11 @@ class CodewerkDCP:
         self.service_type = None
 
     def ip_to_hex(self, ip_conf):
+        '''
+        Converts list containing strings with IP-address, subnet mask and router into byte-string.
+        :param ip_conf: list of strings in order ['ip address', 'subnet mask', 'router']
+        :return: string of bytes, the content of ip_conf has been converted to hex and joint together.
+        '''
         str_hex = ''
         for param in ip_conf:
             nums = list(param.split('.'))
@@ -42,47 +47,86 @@ class CodewerkDCP:
         return bytes.fromhex(str_hex)
 
     def identify_all(self):
+        '''
+        Send multicast request to identify ALL devices in current network interface
+        and get information (name, ip) about them.
+        :return: list with instances of class Device, an instance is created for each device found.
+        '''
         self.dst_mac = '01:0e:cf:00:00:00'
         self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
-        self.send_request(0xFF, 0xFF, 0)
+        self.__send_request(0xFF, 0xFF, 0)
         return self.read_response()
 
     def identify(self, mac):
+        '''
+        Get information (name, IP) about specific device in the network interface
+        :param mac: MAC-address of the device to identify
+        :return: instance of class Device
+        '''
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
-        self.send_request(0xFF, 0xFF, 0)
+        self.__send_request(0xFF, 0xFF, 0)
         return self.read_response()[0]
 
     def set_ip_address(self, mac, ip_conf):
+        '''
+        Set or change IP configurations of a specific device
+        :param mac: MAC-address of target device
+        :param ip_conf: list of strings in order ['ip address', 'subnet mask', 'router']
+        :return: error message, None if no error occurred, str otherwise
+        '''
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
         hex_addr = self.ip_to_hex(ip_conf)
-        self.send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
+        self.__send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
         time.sleep(2)
         return self.read_response(once=True, debug=False, get=False, set=True)
 
     def set_name_of_station(self, mac, name):
+        '''
+        Set or change the name of station of a specific device
+        :param mac: MAC-address of target device
+        :param name: str with the name to set
+        :return: error message, None if no error occurred, str otherwise
+        '''
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
-        self.send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
+        self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
         time.sleep(2)
         return self.read_response(once=True, debug=False, get=False, set=True)
 
     def get_ip_address(self, mac):
+        '''
+        Get IP-address of a specific device
+        :param mac: MAC-address of target device
+        :return: IP-address (str)
+        '''
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
-        self.send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], 0)
+        self.__send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], 0)
         # return list(self.read_response(once=True, debug=False, get=True).values())[0]['ip']
         return self.read_response(once=True, debug=False, get=True)
 
     def get_name_of_station(self, mac):
+        '''
+        Get name of station of a specific device
+        :param mac: MAC-address of target device
+        :return: name of station (decoded str)
+        '''
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
-        self.send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], 0)
+        self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], 0)
         # return list(self.read_response(once=True, debug=False, get=True).values())[0]['name'].decode()
         return self.read_response(once=True, debug=False, get=True).decode()
 
-    def send_request(self, opt, subopt, length, value=None):
+    def __send_request(self, opt, subopt, length, value=None):
+        '''
+        Send DCP-package
+        :param opt: Option of DCP data block in range 1 to 5
+        :param subopt: Suboption of DCP data block
+        :param length: length of DCP payload data, 0 if no data to send
+        :param value: data to send, only used in 'set' functions
+        '''
         if not value:
             block_content = bytes()
         else:
@@ -93,10 +137,12 @@ class CodewerkDCP:
         eth = EthernetVLANHeader(s2mac(self.dst_mac), s2mac(self.src_mac), 0x8892, payload=dcp)
         self.s.send(bytes(eth))
 
-    def response_get_identify(self, payload, once=False, debug=True, get=False):
-        pass
-
-    def response_set(self, payload):
+    def __response_set(self, payload):
+        '''
+        Analyze DCP payload to identify if communication was successfull, return error message otherwise.
+        :param payload: byte string with DCP payload
+        :return: error message, None if no error occurred, str otherwise
+        '''
         error_codes = {1: 'Option unsupported',
                        2: 'Suboption unsupported or no DataSet available',
                        3: 'Suboption not set',
@@ -111,6 +157,15 @@ class CodewerkDCP:
         return error_message
 
     def read_response(self, to=20, once=False, debug=True, get=False, set=False):
+        '''
+        Receive packages in the network, filter DCP packages addressed to the current host and decode them
+        :param to: timeout in sec
+        :param once: script should run only once (only 1 package to receive, ex.: get-functions)
+        :param debug: print device information in the output window
+        :param get: this function was called inside a get-function, True to return only 1 parameter needed
+        :param set: this function was called inside a set-function, True enables error detection
+        :return: string parameter if 'get', DCP payload if 'set', list with instances of class Device otherwise.
+        '''
         ret = {}
         found = []
         try:
@@ -137,7 +192,7 @@ class CodewerkDCP:
 
                     blocks = pro.payload
                     if set and blocks[0] == 5:
-                        msg = self.response_set(blocks)
+                        msg = self.__response_set(blocks)
                         return msg
                     length = pro.length
                     parsed = {}
