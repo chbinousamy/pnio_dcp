@@ -2,12 +2,10 @@ import sys
 import os
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../src')
-# sys.path.insert(0, '../src')
 from scapy.all import *
 from profinet_dcp.util import *
 from profinet_dcp.protocol import *
-import binascii
-import logging
+import psutil
 
 
 class Device:
@@ -20,18 +18,28 @@ class Device:
 
 
 class CodewerkDCP:
-    def __init__(self, iface, mac):
+    def __init__(self, ip):
         self.devices = []
         self.dst_mac = ''
-        # self.iface = conf.route.route(ip)[0]
-        self.iface = iface
-        # self.src_mac = Ether().src  # 00:50:56:ac:28:4e
-        self.src_mac = mac
-        self.s = conf.L2socket(iface=iface)
+        self.src_mac, self.iface = self.__get_nic(ip)
+        self.s = conf.L2socket(iface=self.iface)
 
         self.frame = None
         self.service = None
         self.service_type = None
+
+    def __get_nic(self, ip):
+        '''
+        Identify network interface name and MAC-address using IP-address
+        :param ip: IP-address (str)
+        :return: MAC-address (str), Interface name (str)
+        '''
+        addrs = psutil.net_if_addrs()
+        for iface_name, config in addrs.items():
+            iface_mac = config[0][1]
+            iface_ip = config[1][1]
+            if iface_ip == ip:
+                return iface_mac.replace('-', ':').lower(), iface_name
 
     def ip_to_hex(self, ip_conf):
         '''

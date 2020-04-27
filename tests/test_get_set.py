@@ -12,9 +12,8 @@ import configparser
 class TestDCPGetSet:
     config = configparser.ConfigParser()
     config.read('testconfig.ini')
-    iface = config.get('BasicConfigurations', 'interface')
-    mac = config.get('BasicConfigurations', 'mac')
-    dcp = cw_dcp.CodewerkDCP(iface, mac)
+    ip = config.get('BasicConfigurations', 'ip')
+    dcp = cw_dcp.CodewerkDCP(ip)
     devices = dcp.identify_all()
 
     def test_get_ip(self):

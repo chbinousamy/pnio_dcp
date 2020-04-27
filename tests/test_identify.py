@@ -12,17 +12,12 @@ import configparser
 class TestDCPIdentify:
     config = configparser.ConfigParser()
     config.read('testconfig.ini')
-    iface = config.get('BasicConfigurations', 'interface')
-    mac = config.get('BasicConfigurations', 'mac')
     ip = config.get('BasicConfigurations', 'ip')
     devices = []
 
     def test_identify_all_devices(self):
-        assert self.iface, 'Network interface is not set'
-        assert self.mac, 'MAC-Address is not set'
-        # assert self.ip, 'IP-Address is not set'
-        dcp = cw_dcp.CodewerkDCP(self.iface, self.mac)
-        # dcp = cw_dcp.CodewerkDCP(self.ip)
+        assert self.ip, 'IP-Address is not set'
+        dcp = cw_dcp.CodewerkDCP(self.ip)
         devices = dcp.identify_all()
         assert devices, 'No devices identified'
         for device in devices:
@@ -31,8 +26,8 @@ class TestDCPIdentify:
     # @pytest.mark.skipif(len(devices) == 0, reason='No devices identified in the interface {}'.format(iface))
     # @pytest.mark.parametrize('index', range(len(devices)))
     def test_identify_device(self):
-        assert self.iface, 'Network interface is not set'
-        dcp = cw_dcp.CodewerkDCP(self.iface, self.mac)
+        assert self.ip, 'IP-address is not set'
+        dcp = cw_dcp.CodewerkDCP(self.ip)
         devices = dcp.identify_all()
         for device in devices:
             identified = dcp.identify(device.MAC)
