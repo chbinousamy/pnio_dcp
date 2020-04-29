@@ -5,7 +5,8 @@ myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../src')
 sys.path.insert(0, myPath + '/../src/profinet_dcp')
 sys.path.insert(0, myPath + '/../tests')
-import cw_dcp
+# import cw_dcp
+import cw_dcp_mock as cw_dcp
 import configparser
 
 
@@ -22,7 +23,7 @@ class TestDCPGetSet:
         for device in self.devices:
             ip = self.dcp.get_ip_address(device.MAC)
             assert ip
-            print(ip)
+            print(device.MAC, ' ', ip)
 
     def test_get_name(self):
         assert self.devices
@@ -43,6 +44,8 @@ class TestDCPGetSet:
                 self.dcp.set_ip_address(self.devices[idx].MAC, [valid_ip, '255.255.240.0', '10.0.0.1'])
                 ip = self.dcp.get_ip_address(self.devices[idx].MAC)
                 assert ip == valid_ip
+            else:
+                print('{} -- {}'.format(self.devices[idx].MAC, err_msg))
 
     def test_set_name(self):
         assert self.devices
