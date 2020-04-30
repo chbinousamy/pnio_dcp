@@ -6,6 +6,8 @@ from scapy.all import *
 from profinet_dcp.util import *
 from profinet_dcp.protocol import *
 import psutil
+from unittest.mock import Mock
+from mock_return import MockReturn
 
 
 class Device:
@@ -19,14 +21,21 @@ class Device:
 
 class CodewerkDCP:
     def __init__(self, ip):
+        self.if_mock = False
         self.devices = []
         self.dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
         self.s = conf.L2socket(iface=self.iface)
-
+        self.mock = MockReturn()
         self.frame = None
         self.service = None
         self.service_type = None
+
+    def __define_mock_interface(self, request):
+        self.s = Mock()
+        self.s.recv.return_value = self.mock.identify_response(request)
+        self.s.recv.return_value.append(TimeoutError)
+        self.s.recv.side_effect = self.s.recv.return_value
 
     def __get_nic(self, ip):
         '''
@@ -63,7 +72,7 @@ class CodewerkDCP:
         self.dst_mac = '01:0e:cf:00:00:00'
         self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
-        return self.read_response()
+        return self.read_response(debug=False)
 
     def identify(self, mac):
         '''
@@ -143,6 +152,8 @@ class CodewerkDCP:
         block = PNDCPBlockRequest(opt, subopt, length, block_content)
         dcp = PNDCPHeader(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length if value else len(block), payload=block)
         eth = EthernetVLANHeader(s2mac(self.dst_mac), s2mac(self.src_mac), 0x8892, payload=dcp)
+        if self.if_mock:
+            self.__define_mock_interface(bytes(eth))
         self.s.send(bytes(eth))
 
     def __response_set(self, payload):
@@ -164,7 +175,7 @@ class CodewerkDCP:
             error_message = None
         return error_message
 
-    def read_response(self, to=20, once=False, debug=True, get=False, set=False):
+    def read_response(self, to=10, once=False, debug=True, get=False, set=False):
         '''
         Receive packages in the network, filter DCP packages addressed to the current host and decode them
         :param to: timeout in sec
