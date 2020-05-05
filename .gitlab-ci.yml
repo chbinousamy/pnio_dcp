@@ -7,7 +7,7 @@ stages:
 setup_venv:
   stage: setup
   script:
-    - venv env
+    - -m venv env
     - env/Scripts/activate
     - pip install pytest
     - pip install psutil
