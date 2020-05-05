@@ -6,8 +6,6 @@ from scapy.all import *
 from profinet_dcp.util import *
 from profinet_dcp.protocol import *
 import psutil
-from unittest.mock import Mock
-from mock_return import MockReturn
 
 
 class Device:
