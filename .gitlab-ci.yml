@@ -7,6 +7,6 @@ test:
   stage: tests
   script:
     - cd tests/
-    - pip install pytest
+    - pip install psutil
     - pytest -s
   allow_failure: true
