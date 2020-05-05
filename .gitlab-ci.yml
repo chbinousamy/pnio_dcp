@@ -7,7 +7,7 @@ test:
   stage: tests
   script:
     - cd tests/
-    - pip install --upgrade pip
+    # - pip install --upgrade pip
     - pip install --upgrade psutil
     - pytest -s
   allow_failure: true
