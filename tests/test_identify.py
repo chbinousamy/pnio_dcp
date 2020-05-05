@@ -12,7 +12,6 @@ from mock_return import MockReturn
 class TestDCPIdentify:
     mock = MockReturn()
 
-    # @pytest.mark.instance_dcp('IDENTIFY_ALL')
     def test_identify_all_devices(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
@@ -28,7 +27,6 @@ class TestDCPIdentify:
             assert device.Netmask
             assert device.Gateway
 
-    # @pytest.mark.instance_dcp('IDENTIFY')
     def test_identify_device(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')

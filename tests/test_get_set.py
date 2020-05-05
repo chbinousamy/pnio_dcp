@@ -11,7 +11,6 @@ from mock_return import MockReturn
 class TestDCPGetSet:
     mock = MockReturn()
 
-    # @pytest.mark.instance_dcp('GET_IP')
     def test_get_ip(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
@@ -30,7 +29,6 @@ class TestDCPGetSet:
             assert ip
             print(device.MAC, ' ', ip)
 
-    # @pytest.mark.instance_dcp('GET_NAME')
     def test_get_name(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
@@ -50,7 +48,6 @@ class TestDCPGetSet:
             assert name
             print(device.MAC, ' ', name)
 
-    # @pytest.mark.instance_dcp('SET_IP')
     def test_set_ip(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
@@ -70,7 +67,6 @@ class TestDCPGetSet:
             assert ret_msg
             print('{} -- {}'.format(devices[idx].MAC, ret_msg))
 
-    # @pytest.mark.instance_dcp('SET_NAME')
     def test_set_name(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')

@@ -13,15 +13,10 @@ from mock_return import MockReturn
 @patch('cw_dcp.scapy.all.conf.L2socket')
 @patch('cw_dcp.psutil')
 def instance_dcp(psutil, socket):
-    # sock_request = next(mark for mark in request.function.pytestmark if mark.name == 'instance_dcp').args[0]
 
     mock_return = MockReturn()
 
     psutil.net_if_addrs.return_value = mock_return.testnetz
-
-    # socket.recv.return_value = mock_return.identify_response(sock_request)
-    # socket.recv.return_value.append(TimeoutError)
-    # socket.recv.side_effect = socket.recv.return_value
 
     config = configparser.ConfigParser()
     config.read('testconfig.ini')
