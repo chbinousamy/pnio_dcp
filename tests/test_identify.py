@@ -6,11 +6,19 @@ sys.path.insert(0, myPath + '/../src')
 sys.path.insert(0, myPath + '/../src/profinet_dcp')
 sys.path.insert(0, myPath + '/../tests')
 import cw_dcp
+from mock_return import MockReturn
 
 
 class TestDCPIdentify:
+    mock = MockReturn()
 
+    # @pytest.mark.instance_dcp('IDENTIFY_ALL')
     def test_identify_all_devices(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
+        socket().recv.return_value.append(TimeoutError)
+        socket().recv.side_effect = socket().recv.return_value
+
         devices = instance_dcp.identify_all()
         assert devices
         for device in devices:
@@ -20,10 +28,22 @@ class TestDCPIdentify:
             assert device.Netmask
             assert device.Gateway
 
+    # @pytest.mark.instance_dcp('IDENTIFY')
     def test_identify_device(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
+        socket().recv.return_value.append(TimeoutError)
+        socket().recv.side_effect = socket().recv.return_value
+
         devices = instance_dcp.identify_all()
         assert devices
         for device in devices:
+
+            self.mock.dst_custom = device.MAC
+            socket().recv.return_value = self.mock.identify_response('IDENTIFY')
+            socket().recv.return_value.append(TimeoutError)
+            socket().recv.side_effect = socket().recv.return_value
+
             identified = instance_dcp.identify(device.MAC)
             assert isinstance(identified, cw_dcp.Device)
 

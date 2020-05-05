@@ -21,21 +21,13 @@ class Device:
 
 class CodewerkDCP:
     def __init__(self, ip):
-        self.if_mock = False
         self.devices = []
         self.dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
         self.s = conf.L2socket(iface=self.iface)
-        self.mock = MockReturn()
         self.frame = None
         self.service = None
         self.service_type = None
-
-    def __define_mock_interface(self, request):
-        self.s = Mock()
-        self.s.recv.return_value = self.mock.identify_response(request)
-        self.s.recv.return_value.append(TimeoutError)
-        self.s.recv.side_effect = self.s.recv.return_value
 
     def __get_nic(self, ip):
         '''
@@ -45,8 +37,8 @@ class CodewerkDCP:
         '''
         addrs = psutil.net_if_addrs()
         for iface_name, config in addrs.items():
-            iface_mac = config[0][1]
-            iface_ip = config[1][1]
+            iface_mac = config[0]['address']
+            iface_ip = config[1]['address']
             if iface_ip == ip:
                 return iface_mac.replace('-', ':').lower(), iface_name
 
@@ -121,7 +113,6 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
         self.__send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], 0)
-        # return list(self.read_response(once=True, debug=False, get=True).values())[0]['ip']
         return self.read_response(once=True, debug=False, get=True)
 
     def get_name_of_station(self, mac):
@@ -133,7 +124,6 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
         self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], 0)
-        # return list(self.read_response(once=True, debug=False, get=True).values())[0]['name'].decode()
         return self.read_response(once=True, debug=False, get=True).decode()
 
     def __send_request(self, opt, subopt, length, value=None):
@@ -152,8 +142,6 @@ class CodewerkDCP:
         block = PNDCPBlockRequest(opt, subopt, length, block_content)
         dcp = PNDCPHeader(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length if value else len(block), payload=block)
         eth = EthernetVLANHeader(s2mac(self.dst_mac), s2mac(self.src_mac), 0x8892, payload=dcp)
-        if self.if_mock:
-            self.__define_mock_interface(bytes(eth))
         self.s.send(bytes(eth))
 
     def __response_set(self, payload):
@@ -162,18 +150,19 @@ class CodewerkDCP:
         :param payload: byte string with DCP payload
         :return: error message, None if no error occurred, str otherwise
         '''
-        error_codes = {1: 'Option unsupported',
-                       2: 'Suboption unsupported or no DataSet available',
-                       3: 'Suboption not set',
-                       4: 'Resource Error',
-                       5: 'SET not possible by local reasons',
-                       6: 'In operation, SET not possible'}
-        block_error = payload[6]
-        if block_error != 0:
-            error_message = 'SET unsuccessful, BlockError with code {} ({})'.format(block_error, error_codes[block_error])
+        return_codes = {0: 'Set successful',
+                        1: 'Option unsupported',
+                        2: 'Suboption unsupported or no DataSet available',
+                        3: 'Suboption not set',
+                        4: 'Resource Error',
+                        5: 'SET not possible by local reasons',
+                        6: 'In operation, SET not possible'}
+        block_code = payload[6]
+        if block_code != 0:
+            return_message = 'SET unsuccessful, BlockError with code {} ({})'.format(block_code, return_codes[block_code])
         else:
-            error_message = None
-        return error_message
+            return_message = 'SET successful'
+        return return_message
 
     def read_response(self, to=10, once=False, debug=True, get=False, set=False):
         '''

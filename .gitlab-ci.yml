@@ -1,0 +1,12 @@
+# image: python:latest
+
+stages:
+  - tests
+
+test:
+  stage: tests
+  script:
+    - cd tests/
+    - pip install pytest
+    - pytest -s
+  allow_failure: true

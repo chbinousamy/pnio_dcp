@@ -5,57 +5,87 @@ myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../src')
 sys.path.insert(0, myPath + '/../src/profinet_dcp')
 sys.path.insert(0, myPath + '/../tests')
+from mock_return import MockReturn
 
 
 class TestDCPGetSet:
+    mock = MockReturn()
 
+    # @pytest.mark.instance_dcp('GET_IP')
     def test_get_ip(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
+        socket().recv.return_value.append(TimeoutError)
+        socket().recv.side_effect = socket().recv.return_value
         devices = instance_dcp.identify_all()
         assert devices
         for device in devices:
+
+            self.mock.dst_custom = device.MAC
+            socket().recv.return_value = self.mock.identify_response('GET_IP')
+            socket().recv.return_value.append(TimeoutError)
+            socket().recv.side_effect = socket().recv.return_value
+
             ip = instance_dcp.get_ip_address(device.MAC)
             assert ip
+            print(device.MAC, ' ', ip)
 
+    # @pytest.mark.instance_dcp('GET_NAME')
     def test_get_name(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
+        socket().recv.return_value.append(TimeoutError)
+        socket().recv.side_effect = socket().recv.return_value
+
         devices = instance_dcp.identify_all()
         assert devices
         for device in devices:
+
+            self.mock.dst_custom = device.MAC
+            socket().recv.return_value = self.mock.identify_response('GET_NAME')
+            socket().recv.return_value.append(TimeoutError)
+            socket().recv.side_effect = socket().recv.return_value
+
             name = instance_dcp.get_name_of_station(device.MAC)
             assert name
             print(device.MAC, ' ', name)
 
+    # @pytest.mark.instance_dcp('SET_IP')
     def test_set_ip(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
+        socket().recv.return_value.append(TimeoutError)
+        socket().recv.side_effect = socket().recv.return_value
         devices = instance_dcp.identify_all()
         new_ip = ['10.0.0.31', '255.255.240.0', '10.0.0.1']
         assert devices
         for idx in range(len(devices)):
-            valid_ip = instance_dcp.get_ip_address(devices[idx].MAC)
-            err_msg = instance_dcp.set_ip_address(devices[idx].MAC, new_ip)
-            if new_ip[0] == valid_ip:
-                continue
-            ip_tmp = instance_dcp.get_ip_address(devices[idx].MAC)
-            if err_msg is None:
-                assert ip_tmp != valid_ip
-                instance_dcp.set_ip_address(devices[idx].MAC, [valid_ip, '255.255.240.0', '10.0.0.1'])
-                ip = instance_dcp.get_ip_address(devices[idx].MAC)
-                assert ip == valid_ip
-            else:
-                print('{} -- {}'.format(devices[idx].MAC, err_msg))
 
+            self.mock.dst_custom = devices[idx].MAC
+            socket().recv.return_value = self.mock.identify_response('SET_IP')
+            socket().recv.return_value.append(TimeoutError)
+            socket().recv.side_effect = socket().recv.return_value
+
+            ret_msg = instance_dcp.set_ip_address(devices[idx].MAC, new_ip)
+            assert ret_msg
+            print('{} -- {}'.format(devices[idx].MAC, ret_msg))
+
+    # @pytest.mark.instance_dcp('SET_NAME')
     def test_set_name(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
+        socket().recv.return_value.append(TimeoutError)
+        socket().recv.side_effect = socket().recv.return_value
         devices = instance_dcp.identify_all()
         assert devices
         for idx in range(len(devices)):
+
+            self.mock.dst_custom = devices[idx].MAC
+            socket().recv.return_value = self.mock.identify_response('SET_NAME')
+            socket().recv.return_value.append(TimeoutError)
+            socket().recv.side_effect = socket().recv.return_value
+
             new_name = 'name-{}'.format(idx)
-            valid_name = instance_dcp.get_name_of_station(devices[idx].MAC)
-            err_msg = instance_dcp.set_name_of_station(devices[idx].MAC, new_name)
-            if new_name == valid_name:
-                continue
-            name_tmp = instance_dcp.get_name_of_station(devices[idx].MAC)
-            if err_msg is None:
-                assert name_tmp != valid_name
-                instance_dcp.set_name_of_station(devices[idx].MAC, valid_name)
-                name = instance_dcp.get_name_of_station(devices[idx].MAC)
-                assert name == valid_name
-            else:
-                print('{} -- {}'.format(devices[idx].MAC, err_msg))
+            ret_msg = instance_dcp.set_name_of_station(devices[idx].MAC, new_name)
+            assert ret_msg
+            print('{} -- {}'.format(devices[idx].MAC, ret_msg))
