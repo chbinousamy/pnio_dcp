@@ -18,6 +18,8 @@ test:
   script:
     - python -m venv env
     - ./env/Scripts/activate
+    - pip install pytest
+    - pip install psutil
     - cd ../../tests
     - pytest -s
   allow_failure: true
