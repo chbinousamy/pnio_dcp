@@ -6,16 +6,17 @@ setup_venv:
   stage: setup
   script:
     - python -m venv env
-    - env/Scripts/activate
+    - cd env/Scripts
+    - activate.bat
     - pip install pytest
     - pip install psutil
+  allow_failure: true
 
 test:
   stage: tests
   dependencies:
     - setup_venv
   script:
-    - cd 
     - cd env/Scripts
     - activate.bat
     - cd ../../tests
