@@ -20,6 +20,6 @@ test:
     - ./env/Scripts/activate
     - pip install pytest
     - pip install psutil
-    - cd ../../tests
+    - cd tests
     - pytest -s
   allow_failure: true
