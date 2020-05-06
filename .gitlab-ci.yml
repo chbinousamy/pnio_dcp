@@ -1,23 +1,25 @@
-# image: python:latest
-
 stages:
-  - setup
+  # - setup
   - tests
 
-setup_venv:
-  stage: setup
-  script:
-    - venv env
-    - env/Scripts/activate
-    - pip install pytest
-    - pip install psutil
+# setup_venv:
+#   stage: setup
+#   script:
+#     - python -m venv env
+#     - ./env/Scripts/activate
+#     - pip install pytest
+#     - pip install psutil
+#   allow_failure: true
 
 test:
   stage: tests
-  dependencies:
-    - setup_venv
+  # dependencies:
+  #   - setup_venv
   script:
-    - cd tests/
+    - python -m venv env
     - ./env/Scripts/activate
+    - pip install pytest
+    - pip install psutil
+    - cd tests
     - pytest -s
   allow_failure: true
