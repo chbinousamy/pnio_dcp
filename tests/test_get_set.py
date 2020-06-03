@@ -2,8 +2,8 @@ import pytest
 import sys
 import os
 myPath = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, myPath + '/../src')
-sys.path.insert(0, myPath + '/../src/profinet_dcp')
+sys.path.insert(0, myPath + '/../cw_dcp')
+sys.path.insert(0, myPath + '/../cw_dcp/profinet_dcp')
 sys.path.insert(0, myPath + '/../tests')
 from mock_return import MockReturn
 
@@ -59,7 +59,7 @@ class TestDCPGetSet:
         for idx in range(len(devices)):
 
             self.mock.dst_custom = devices[idx].MAC
-            socket().recv.return_value = self.mock.identify_response('SET_IP')
+            socket().recv.return_value = self.mock.identify_response('SET')
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
@@ -77,7 +77,7 @@ class TestDCPGetSet:
         for idx in range(len(devices)):
 
             self.mock.dst_custom = devices[idx].MAC
-            socket().recv.return_value = self.mock.identify_response('SET_NAME')
+            socket().recv.return_value = self.mock.identify_response('SET')
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 

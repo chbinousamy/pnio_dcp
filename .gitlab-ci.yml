@@ -1,25 +1,27 @@
 stages:
-  # - setup
+  - setup
   - tests
 
-# setup_venv:
-#   stage: setup
-#   script:
-#     - python -m venv env
-#     - ./env/Scripts/activate
-#     - pip install pytest
-#     - pip install psutil
-#   allow_failure: true
-
-test:
-  stage: tests
-  # dependencies:
-  #   - setup_venv
+setup_venv:
+  stage: setup
   script:
     - python -m venv env
     - ./env/Scripts/activate
     - pip install pytest
     - pip install psutil
+    - pip install scapy
+  allow_failure: true
+  artifacts:
+    paths:
+      - ./env
+    expire_in: 1 week
+
+test:
+  stage: tests
+  dependencies:
+    - setup_venv
+  script:
+    - ./env/Scripts/activate
     - cd tests
     - pytest -s
   allow_failure: true
