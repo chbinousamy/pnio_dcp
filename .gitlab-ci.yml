@@ -1,6 +1,18 @@
 stages:
+  - build
   - setup
   - tests
+
+build_package:
+  stage: build
+  script:
+    - pip install setuptools wheel
+    - python setup.py sdist bdist_wheel
+  allow_failure: true
+  artifacts:
+    paths:
+      - .dist/*.whl
+    expire_in: 1 week
 
 setup_venv:
   stage: setup
@@ -8,8 +20,8 @@ setup_venv:
     - python -m venv env
     - ./env/Scripts/activate
     - pip install pytest
-    - pip install psutil
-    - pip install scapy
+    - pip install pytest-cov
+    - pip install ./dist/cw_dcp-0.1-py3-none-any.whl
   allow_failure: true
   artifacts:
     paths:
@@ -23,5 +35,11 @@ test:
   script:
     - ./env/Scripts/activate
     - cd tests
-    - pytest -s
+    - pytest -s --junitxml=results/tests.xml --cov-report term --cov-report xml:coverage.xml --cov=cw_dcp
+    - sonar-scanner.bat -D"sonar.projectKey=dcp" -D"sonar.sources=env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
   allow_failure: true
+  artifacts:
+    when: always
+    reports:
+      junit: tests/results/tests.xml
+

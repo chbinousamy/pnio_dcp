@@ -1,7 +1,6 @@
 import pytest
 import os, sys
 myPath = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, myPath + '/../../cw_dcp')
 sys.path.insert(0, myPath + '/../')
 import cw_dcp
 import configparser
@@ -10,8 +9,8 @@ from mock_return import MockReturn
 
 
 @pytest.fixture(scope='function')
-@patch('cw_dcp.scapy.all.conf.L2socket')
-@patch('cw_dcp.psutil')
+@patch('cw_dcp.cw_dcp.scapy.all.conf.L2socket')
+@patch('cw_dcp.cw_dcp.psutil')
 def instance_dcp(psutil, socket):
 
     mock_return = MockReturn()

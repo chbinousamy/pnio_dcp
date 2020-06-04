@@ -12,12 +12,6 @@ from util import *
 #     DCP
 #
 
-# EthernetHeader = make_packet("EthernetHeader", (
-#         ("dst",  ("6s", mac2s)),
-#         ("src",  ("6s", mac2s)),
-#         ("type", ("H", "0x%04X"))
-# ))
-
 EthernetHeader = make_packet("EthernetHeader", (
         ("dst",  ("6s", mac2s)),
         ("src",  ("6s", mac2s)),
