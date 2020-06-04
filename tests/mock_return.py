@@ -69,12 +69,12 @@ class MockReturn:
     def generate_identify(self):
         self.frame_id = 0xfeff
         self.service_id = PNDCPHeader.IDENTIFY
-
         if len(self.devices[self.dst_custom].NameOfStation) % 2 == 1:
             name = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation, encoding='ascii') + bytes([0x00])
+            len_name = bytes.fromhex(format(len(name) - 1, '04x'))
         else:
             name = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation, encoding='ascii')
-        len_name = bytes.fromhex(format(len(name), '04x'))
+            len_name = bytes.fromhex(format(len(name), '04x'))
         content_name = bytes([0x02, 0x02]) + len_name + name
 
         ip = bytes([0x00, 0x01]) + self.ip_to_hex(self.devices[self.dst_custom].ip_conf)
