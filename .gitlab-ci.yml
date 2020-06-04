@@ -11,7 +11,7 @@ build_package:
   allow_failure: true
   artifacts:
     paths:
-      - .dist/*.whl
+      - ./dist/*.whl
     expire_in: 1 week
 
 setup_venv:
