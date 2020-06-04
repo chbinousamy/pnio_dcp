@@ -42,4 +42,7 @@ test:
     when: always
     reports:
       junit: tests/results/tests.xml
+    paths:
+      - tests/results/
+      - tests/*.xml
 
