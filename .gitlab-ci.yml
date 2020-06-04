@@ -36,7 +36,7 @@ test:
     - ./env/Scripts/activate
     - cd tests
     - pytest -s --junitxml=results/tests.xml --cov-report term --cov-report xml:coverage.xml --cov=cw_dcp
-    - sonar-scanner.bat -D"sonar.projectKey=dcp" -D"sonar.sources=env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
+    - sonar-scanner.bat -D"sonar.projectKey=$SQ_PRODUCT_KEY" -D"sonar.sources=env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
   allow_failure: true
   artifacts:
     when: always
