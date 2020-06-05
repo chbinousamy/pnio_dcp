@@ -1,5 +1,5 @@
 import pytest
-from .mock_return import MockReturn
+from mock_return import MockReturn
 
 
 class TestDCPGetSet:

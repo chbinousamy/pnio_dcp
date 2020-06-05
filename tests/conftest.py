@@ -1,1 +1,1 @@
-from .fixture.instance_dcp import instance_dcp
+from instance_dcp import instance_dcp
