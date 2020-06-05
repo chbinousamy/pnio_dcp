@@ -17,15 +17,16 @@ build_package:
 setup_venv:
   stage: setup
   script:
+    - cd tests/
     - python -m venv env
     - ./env/Scripts/activate
     - pip install pytest
     - pip install pytest-cov
-    - pip install ./dist/cw_dcp-0.1-py3-none-any.whl
+    - pip install ../dist/cw_dcp-0.1-py3-none-any.whl
   allow_failure: true
   artifacts:
     paths:
-      - ./env
+      - ./tests/env
     expire_in: 1 week
 
 test:
@@ -33,10 +34,10 @@ test:
   dependencies:
     - setup_venv
   script:
+    - cd tests/
     - ./env/Scripts/activate
-    - cd tests
     - pytest -s --junitxml=results/tests.xml --cov-report term --cov-report xml:coverage.xml --cov=cw_dcp
-    - sonar-scanner.bat -D"sonar.projectKey=$SQ_PRODUCT_KEY" -D"sonar.sources=../env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
+    - sonar-scanner.bat -D"sonar.projectKey=cw_dcp" -D"sonar.sources=env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
   allow_failure: true
   artifacts:
     when: always
