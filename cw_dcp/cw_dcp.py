@@ -2,14 +2,9 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
-
-import sys
-import os
-myPath = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, myPath + '/../cw_dcp')
 from scapy.all import *
-from profinet_dcp.util import *
-from profinet_dcp.protocol import *
+from .profinet_dcp.util import *
+from .profinet_dcp.protocol import *
 import psutil
 
 

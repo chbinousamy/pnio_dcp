@@ -1,6 +1,3 @@
-import sys
-import os
-myPath = os.path.dirname(os.path.abspath(__file__))
 import binascii
 import random
 import cw_dcp
@@ -16,7 +13,6 @@ class MockDevice:
         self.Gateway = ip_conf[2]
 
         self.err_code = err_code
-
 
 
 class MockReturn:

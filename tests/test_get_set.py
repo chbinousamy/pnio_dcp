@@ -1,8 +1,4 @@
 import pytest
-import sys
-import os
-myPath = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, myPath + '/../tests')
 from mock_return import MockReturn
 
 
