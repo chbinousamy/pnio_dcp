@@ -2,7 +2,7 @@ import pytest
 import cw_dcp
 import configparser
 from unittest.mock import patch
-from mock_return import MockReturn
+from ..mock_return import MockReturn
 
 
 @pytest.fixture(scope='function')

@@ -1,6 +1,6 @@
 import pytest
 import cw_dcp
-from mock_return import MockReturn
+from .mock_return import MockReturn
 
 
 class TestDCPIdentify:
