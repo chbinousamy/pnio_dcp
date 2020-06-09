@@ -2,6 +2,7 @@ stages:
   - build
   - setup
   - tests
+  - deploy
 
 build_package:
   stage: build
@@ -17,6 +18,7 @@ build_package:
 setup_venv:
   stage: setup
   script:
+    - pip install twine
     - cd tests/
     - python -m venv env
     - ./env/Scripts/activate
@@ -46,4 +48,15 @@ test:
     paths:
       - tests/results/
       - tests/*.xml
+
+deployment:
+  stage: deploy
+  dependencies:
+    - build_package
+    - setup_venv
+  script:
+    - ./tests/env/Scripts/activate
+    - cd ./dist/
+    - twine upload *.whl --repository-url https://nexus.codewerk.de/repository/pypi-codewerk/ -u $USER -p $PASSWORD
+  allow_failure: true
 

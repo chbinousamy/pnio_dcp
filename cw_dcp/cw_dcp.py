@@ -8,6 +8,7 @@ from .profinet_dcp.protocol import *
 import psutil
 import re
 
+
 class Device:
 
     name_of_station = ''
@@ -210,6 +211,12 @@ class CodewerkDCP:
         return found
 
     def __parse_dcp_packet(self, data, set):
+        '''
+        Process received byte-string and identify content parts
+        :param data: byte-string of DCP-response, received by a socket
+        :param set: bool-parameter to identify, if response is needed for a 'set'-function
+        :return: message, if set was successful (if set); Device object otherwise
+        '''
         data = bytes(data)
         eth = EthernetHeader(data)
         pro = self.__prove_for_validity(eth)
@@ -231,6 +238,11 @@ class CodewerkDCP:
             return
 
     def __prove_for_validity(self, eth):
+        '''
+        Check if the received packed is a DCP-response, addressed to the source
+        :param eth: EtherhetHeader data
+        :return: Ethernet payload if DCP-response addressed to the source, None otherwise
+        '''
         if mac2s(eth.dst) != self.src_mac or eth.type != PNDCPHeader.ETHER_TYPE:
             return
         pro = PNDCPHeader(eth.payload)
@@ -239,7 +251,12 @@ class CodewerkDCP:
         return pro
 
     def __process_block(self, blocks, device):
-
+        '''
+        Process bytes of DCP data block and fill in a Device object with correspondent values
+        :param blocks: byte content of a DCP data block
+        :param device: instance of a Device object
+        :return: filled instance of a Device object, length of DCP data block
+        '''
         block = PNDCPBlock(blocks)
         blockoption = (block.option, block.suboption)
         block_len = block.length
