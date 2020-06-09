@@ -28,7 +28,8 @@ class CodewerkDCP:
         self.service = None
         self.service_type = None
 
-    def __get_nic(self, ip):
+    @staticmethod
+    def __get_nic(ip):
         '''
         Identify network interface name and MAC-address using IP-address
         :param ip: IP-address (str)
@@ -41,7 +42,8 @@ class CodewerkDCP:
             if iface_ip == ip:
                 return iface_mac.replace('-', ':').lower(), iface_name
 
-    def ip_to_hex(self, ip_conf):
+    @staticmethod
+    def ip_to_hex(ip_conf):
         '''
         Converts list containing strings with IP-address, subnet mask and router into byte-string.
         :param ip_conf: list of strings in order ['ip address', 'subnet mask', 'router']
@@ -155,7 +157,8 @@ class CodewerkDCP:
         eth = EthernetVLANHeader(s2mac(self.dst_mac), s2mac(self.src_mac), 0x8892, payload=dcp)
         self.s.send(bytes(eth))
 
-    def __response_set(self, payload):
+    @staticmethod
+    def __response_set(payload):
         '''
         Analyze DCP payload to identify if communication was successfull, return error message otherwise.
         :param payload: byte string with DCP payload
@@ -190,13 +193,14 @@ class CodewerkDCP:
                     if t.timed_out:
                         break
                     try:
-                        data = self.s.recv()
-                        if data is None:
-                            continue
+                        data = self.__receive_packet()
                     except timeout:
                         continue
 
-                    ret = self.__parse_dcp_packet(data, set)
+                    if data:
+                        ret = self.__parse_dcp_packet(data, set)
+                    else:
+                        continue
                     if isinstance(ret, Device):
                         found.append(ret)
                     elif isinstance(ret, str):
@@ -210,6 +214,13 @@ class CodewerkDCP:
 
         return found
 
+    def __receive_packet(self):
+        data = self.s.recv()
+        if data is None:
+            return
+        data = bytes(data)
+        return data
+
     def __parse_dcp_packet(self, data, set):
         '''
         Process received byte-string and identify content parts
@@ -217,7 +228,7 @@ class CodewerkDCP:
         :param set: bool-parameter to identify, if response is needed for a 'set'-function
         :return: message, if set was successful (if set); Device object otherwise
         '''
-        data = bytes(data)
+
         eth = EthernetHeader(data)
         pro = self.__prove_for_validity(eth)
         if pro:
@@ -250,7 +261,8 @@ class CodewerkDCP:
             return
         return pro
 
-    def __process_block(self, blocks, device):
+    @staticmethod
+    def __process_block(blocks, device):
         '''
         Process bytes of DCP data block and fill in a Device object with correspondent values
         :param blocks: byte content of a DCP data block
