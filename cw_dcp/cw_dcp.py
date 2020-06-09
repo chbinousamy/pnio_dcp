@@ -6,15 +6,15 @@ from scapy.all import *
 from .profinet_dcp.util import *
 from .profinet_dcp.protocol import *
 import psutil
-
+import re
 
 class Device:
 
-    NameOfStation = ''
+    name_of_station = ''
     MAC = ''
     IP = ''
-    Netmask = ''
-    Gateway = ''
+    netmask = ''
+    gateway = ''
 
 
 class CodewerkDCP:
@@ -49,8 +49,16 @@ class CodewerkDCP:
         str_hex = ''
         for param in ip_conf:
             nums = list(param.split('.'))
+
+            if len(nums) != 4:
+                raise Exception('Provided IP-address of invalid length')
             for i in nums:
+                if not i.isdigit():
+                    raise Exception('Provided invalid IP-octet (non-integer): "{}"'.format(i))
+                if not 0 <= int(i) <= 255:
+                    raise Exception('Provided value exceeds the allowed range of IP octets (0-255)')
                 str_hex += hex(int(i))[2:].zfill(2)
+
         return bytes.fromhex(str_hex)
 
     def identify_all(self):
@@ -96,6 +104,10 @@ class CodewerkDCP:
         :param name: str with the name to set
         :return: error message, None if no error occurred, str otherwise
         '''
+        valid_pattern = re.compile(r"^[a-zA-Z0-9\-\.]*$")
+        if not re.match(valid_pattern, name) or name[0] in '.0123456789-':
+            raise Exception('Name should correspond DNS standard. A string of invalid format provided.')
+        name = name.lower()
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
         self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
@@ -216,7 +228,7 @@ class CodewerkDCP:
                         if blockoption == PNDCPBlock.NAME_OF_STATION:
                             debug and print("Name of Station: %s" % block.payload)
                             parsed["name"] = block.payload
-                            device.NameOfStation = block.payload.decode()
+                            device.name_of_station = block.payload.decode()
                             if get:
                                 return block.payload
                         elif blockoption == PNDCPBlock.IP_ADDRESS:
@@ -225,11 +237,10 @@ class CodewerkDCP:
                             if get:
                                 return s2ip(block.payload[0:4])
                             device.IP = s2ip(block.payload[0:4])
-                            device.Netmask = s2ip(block.payload[4:8])
-                            device.Gateway = s2ip(block.payload[8:12])
+                            device.netmask = s2ip(block.payload[4:8])
+                            device.gateway = s2ip(block.payload[8:12])
                         elif blockoption == PNDCPBlock.DEVICE_ID:
                             parsed["devId"] = block.payload
-
 
                         if block_len % 2 == 1:
                             block_len += 1

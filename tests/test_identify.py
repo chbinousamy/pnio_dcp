@@ -15,11 +15,11 @@ class TestDCPIdentify:
         devices = instance_dcp.identify_all()
         assert devices
         for device in devices:
-            assert device.NameOfStation
+            assert device.name_of_station
             assert device.MAC
             assert device.IP
-            assert device.Netmask
-            assert device.Gateway
+            assert device.netmask
+            assert device.gateway
 
     def test_identify_device(self, instance_dcp):
         instance_dcp, socket = instance_dcp
