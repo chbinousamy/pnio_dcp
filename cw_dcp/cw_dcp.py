@@ -70,7 +70,7 @@ class CodewerkDCP:
         self.dst_mac = '01:0e:cf:00:00:00'
         self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
-        return self.read_response(debug=False)
+        return self.read_response()
 
     def identify(self, mac):
         '''
@@ -95,7 +95,7 @@ class CodewerkDCP:
         hex_addr = self.ip_to_hex(ip_conf)
         self.__send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
         time.sleep(2)
-        return self.read_response(once=True, debug=False, get=False, set=True)
+        return self.read_response(once=True, set=True)
 
     def set_name_of_station(self, mac, name):
         '''
@@ -104,15 +104,15 @@ class CodewerkDCP:
         :param name: str with the name to set
         :return: error message, None if no error occurred, str otherwise
         '''
-        valid_pattern = re.compile(r"^[a-zA-Z0-9\-\.]*$")
-        if not re.match(valid_pattern, name) or name[0] in '.0123456789-':
+        valid_pattern = re.compile(r"^[a-z][a-zA-Z0-9\-\.]*$")
+        if not re.match(valid_pattern, name):
             raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
         self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
         time.sleep(2)
-        return self.read_response(once=True, debug=False, get=False, set=True)
+        return self.read_response(once=True, set=True)
 
     def get_ip_address(self, mac):
         '''
@@ -123,7 +123,7 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
         self.__send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], 0)
-        return self.read_response(once=True, debug=False, get=True)
+        return self.read_response(once=True)[0].IP
 
     def get_name_of_station(self, mac):
         '''
@@ -134,7 +134,7 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
         self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], 0)
-        return self.read_response(once=True, debug=False, get=True).decode()
+        return self.read_response(once=True)[0].name_of_station
 
     def __send_request(self, opt, subopt, length, value=None):
         '''
@@ -174,17 +174,14 @@ class CodewerkDCP:
             return_message = 'SET successful'
         return return_message
 
-    def read_response(self, to=10, once=False, debug=True, get=False, set=False):
+    def read_response(self, to=10, once=False, set=False):
         '''
         Receive packages in the network, filter DCP packages addressed to the current host and decode them
         :param to: timeout in sec
         :param once: script should run only once (only 1 package to receive, ex.: get-functions)
-        :param debug: print device information in the output window
-        :param get: this function was called inside a get-function, True to return only 1 parameter needed
         :param set: this function was called inside a set-function, True enables error detection
         :return: string parameter if 'get', DCP payload if 'set', list with instances of class Device otherwise.
         '''
-        ret = {}
         found = []
         try:
             with max_timeout(to) as t:
@@ -195,61 +192,14 @@ class CodewerkDCP:
                         data = self.s.recv()
                         if data is None:
                             continue
-                        data = bytes(data)
                     except timeout:
                         continue
 
-                    eth = EthernetHeader(data)
-
-                    if mac2s(eth.dst) != self.src_mac or eth.type != PNDCPHeader.ETHER_TYPE:
-                        continue
-                    debug and print("MAC address:", mac2s(eth.src))
-
-                    pro = PNDCPHeader(eth.payload)
-                    if not (pro.service_type == PNDCPHeader.RESPONSE):
-                        continue
-
-                    blocks = pro.payload
-                    if set and blocks[0] == 5:
-                        msg = self.__response_set(blocks)
-                        return msg
-                    length = pro.length
-                    parsed = {}
-
-                    device = Device()
-                    device.MAC = mac2s(eth.src)
-
-                    while length > 6:
-                        block = PNDCPBlock(blocks)
-                        blockoption = (block.option, block.suboption)
-                        parsed[blockoption] = block.payload
-
-                        block_len = block.length
-                        if blockoption == PNDCPBlock.NAME_OF_STATION:
-                            debug and print("Name of Station: %s" % block.payload)
-                            parsed["name"] = block.payload
-                            device.name_of_station = block.payload.decode()
-                            if get:
-                                return block.payload
-                        elif blockoption == PNDCPBlock.IP_ADDRESS:
-                            debug and print(str(block.parse_ip()))
-                            parsed["ip"] = s2ip(block.payload[0:4])
-                            if get:
-                                return s2ip(block.payload[0:4])
-                            device.IP = s2ip(block.payload[0:4])
-                            device.netmask = s2ip(block.payload[4:8])
-                            device.gateway = s2ip(block.payload[8:12])
-                        elif blockoption == PNDCPBlock.DEVICE_ID:
-                            parsed["devId"] = block.payload
-
-                        if block_len % 2 == 1:
-                            block_len += 1
-
-                        blocks = blocks[block_len + 4:]
-                        length -= 4 + block_len
-
-                    ret[eth.src] = parsed
-                    found.append(device)
+                    ret = self.__parse_dcp_packet(data, set)
+                    if isinstance(ret, Device):
+                        found.append(ret)
+                    elif isinstance(ret, str):
+                        return ret
 
                     if once:
                         break
@@ -257,7 +207,51 @@ class CodewerkDCP:
         except TimeoutError:
             pass
 
-        if get:
-            return ret
+        return found
+
+    def __parse_dcp_packet(self, data, set):
+        data = bytes(data)
+        eth = EthernetHeader(data)
+        pro = self.__prove_for_validity(eth)
+        if pro:
+            blocks = pro.payload
+            if set and blocks[0] == 5:
+                msg = self.__response_set(blocks)
+                return msg
+            length = pro.length
+            device = Device()
+            device.MAC = mac2s(eth.src)
+            while length > 6:
+                device, block_len = self.__process_block(blocks, device)
+                blocks = blocks[block_len + 4:]
+                length -= 4 + block_len
+
+            return device
         else:
-            return found
+            return
+
+    def __prove_for_validity(self, eth):
+        if mac2s(eth.dst) != self.src_mac or eth.type != PNDCPHeader.ETHER_TYPE:
+            return
+        pro = PNDCPHeader(eth.payload)
+        if not (pro.service_type == PNDCPHeader.RESPONSE):
+            return
+        return pro
+
+    def __process_block(self, blocks, device):
+
+        block = PNDCPBlock(blocks)
+        blockoption = (block.option, block.suboption)
+        block_len = block.length
+
+        if blockoption == PNDCPBlock.NAME_OF_STATION:
+            device.name_of_station = block.payload.decode()
+        elif blockoption == PNDCPBlock.IP_ADDRESS:
+            device.IP = s2ip(block.payload[0:4])
+            device.netmask = s2ip(block.payload[4:8])
+            device.gateway = s2ip(block.payload[8:12])
+
+        if block_len % 2 == 1:
+            block_len += 1
+
+        return device, block_len
