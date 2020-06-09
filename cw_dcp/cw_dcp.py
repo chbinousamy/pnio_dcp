@@ -51,12 +51,12 @@ class CodewerkDCP:
             nums = list(param.split('.'))
 
             if len(nums) != 4:
-                raise Exception('Provided IP-address of invalid length')
+                raise ValueError('Provided IP-address of invalid length')
             for i in nums:
                 if not i.isdigit():
-                    raise Exception('Provided invalid IP-octet (non-integer): "{}"'.format(i))
+                    raise TypeError('Provided invalid IP-octet (non-integer): "{}"'.format(i))
                 if not 0 <= int(i) <= 255:
-                    raise Exception('Provided value exceeds the allowed range of IP octets (0-255)')
+                    raise ValueError('Provided value exceeds the allowed range of IP octets (0-255)')
                 str_hex += hex(int(i))[2:].zfill(2)
 
         return bytes.fromhex(str_hex)
@@ -106,7 +106,7 @@ class CodewerkDCP:
         '''
         valid_pattern = re.compile(r"^[a-zA-Z0-9\-\.]*$")
         if not re.match(valid_pattern, name) or name[0] in '.0123456789-':
-            raise Exception('Name should correspond DNS standard. A string of invalid format provided.')
+            raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
