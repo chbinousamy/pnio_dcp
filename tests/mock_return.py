@@ -25,7 +25,7 @@ class MockReturn:
     eth_type = 0x8892
     frame_id = None
     service_id = None
-    service_type = cw_dcp.PNDCPHeader.RESPONSE
+    service_type = cw_dcp.dcp_header.RESPONSE
     devices = {'00:0c:29:66:47:a5': MockDevice('win-4faufud472v', '00:0c:29:66:47:a5', ['10.0.0.251', '255.255.240.0', '10.0.0.1'], b'00'),
                '00:0e:8c:e5:3c:58': MockDevice('spsw-11', '00:0e:8c:e5:3c:58', ['10.0.0.30', '255.255.240.0', '10.0.0.1'], random.choice([b'01', b'02', b'03'])),
                '00:e0:7c:c8:72:58': MockDevice('cwl-r90g66zd', '00:e0:7c:c8:72:58', ['10.0.4.53', '255.255.240.0', '10.0.0.1'], b'00'),
@@ -61,7 +61,7 @@ class MockReturn:
 
     def generate_identify(self):
         self.frame_id = 0xfeff
-        self.service_id = cw_dcp.PNDCPHeader.IDENTIFY
+        self.service_id = cw_dcp.dcp_header.IDENTIFY
         if len(self.devices[self.dst_custom].NameOfStation) % 2 == 1:
             name = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation, encoding='ascii') + bytes([0x00])
             len_name = bytes.fromhex(format(len(name) - 1, '04x'))
@@ -78,7 +78,7 @@ class MockReturn:
 
     def generate_get(self, param):
         self.frame_id = 0xfefd
-        self.service_id = cw_dcp.PNDCPHeader.GET
+        self.service_id = cw_dcp.dcp_header.GET
         content_tail = bytes([0x05, 0x04, 0x0003, 0x000001])
 
         if param == 'IP':
@@ -92,17 +92,17 @@ class MockReturn:
             else:
                 content = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation, encoding='ascii')
         block_content = content + content_tail
-        self.block = cw_dcp.PNDCPBlockRequest(opt, subopt, len(content) + (1 if len(content) % 2 == 1 else 0), block_content)
+        self.block = cw_dcp.DCPBlockRequest(opt, subopt, len(content) + (1 if len(content) % 2 == 1 else 0), block_content)
         return self.compose_response()
 
     def generate_set(self):
         self.frame_id = 0xfefd
-        self.service_id = cw_dcp.PNDCPHeader.SET
+        self.service_id = cw_dcp.dcp_header.SET
         block_content = bytes([0x02, 0x02]) + binascii.unhexlify(self.devices[self.dst_custom].err_code)
-        self.block = cw_dcp.PNDCPBlockRequest(0x05, 0x04, len(block_content), block_content)
+        self.block = cw_dcp.DCPBlockRequest(0x05, 0x04, len(block_content), block_content)
         return self.compose_response()
 
     def compose_response(self):
-        dcp = cw_dcp.PNDCPHeader(self.frame_id, self.service_id, self.service_type, 0x7010052, 0x0000, len(self.block), payload=self.block)
-        eth = cw_dcp.EthernetVLANHeader(cw_dcp.s2mac(self.src), cw_dcp.s2mac(self.dst_custom), self.eth_type, payload=dcp)
+        dcp = cw_dcp.dcp_header(self.frame_id, self.service_id, self.service_type, 0x7010052, 0x0000, len(self.block), payload=self.block)
+        eth = cw_dcp.eth_header(cw_dcp.mac_to_hex(self.src), cw_dcp.mac_to_hex(self.dst_custom), self.eth_type, payload=dcp)
         return [bytes(eth)]

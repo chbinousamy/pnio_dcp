@@ -23,20 +23,13 @@ class TestDCPIdentify:
 
     def test_identify_device(self, instance_dcp):
         instance_dcp, socket = instance_dcp
-        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
-        socket().recv.return_value.append(TimeoutError)
-        socket().recv.side_effect = socket().recv.return_value
-
-        devices = instance_dcp.identify_all()
-        assert devices
-        for device in devices:
-
-            self.mock.dst_custom = device.MAC
+        for device_mac in self.mock.dst:
+            self.mock.dst_custom = device_mac
             socket().recv.return_value = self.mock.identify_response('IDENTIFY')
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
-            identified = instance_dcp.identify(device.MAC)
+            identified = instance_dcp.identify(device_mac)
             assert isinstance(identified, cw_dcp.Device)
 
 

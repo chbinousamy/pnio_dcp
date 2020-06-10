@@ -1,3 +1,3 @@
-from .profinet_dcp.protocol import EthernetHeader, EthernetVLANHeader, PNDCPHeader, IPConfiguration, PNDCPBlockRequest, PNDCPBlock
-from .profinet_dcp.util import s2mac, mac2s, s2ip, max_timeout
+from .protocol import eth_header, dcp_header, DCPBlockRequest, DCPBlock
+from .util import mac_to_hex, hex_to_mac, hex_to_ip, TimeoutLimit
 from .cw_dcp import CodewerkDCP, Device

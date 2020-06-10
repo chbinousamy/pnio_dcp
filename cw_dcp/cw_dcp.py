@@ -3,8 +3,8 @@ Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
 from scapy.all import *
-from .profinet_dcp.util import *
-from .profinet_dcp.protocol import *
+from .util import *
+from .protocol import *
 import psutil
 import re
 
@@ -71,7 +71,7 @@ class CodewerkDCP:
         :return: list with instances of class Device, an instance is created for each device found.
         '''
         self.dst_mac = '01:0e:cf:00:00:00'
-        self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
+        self.frame, self.service, self.service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
         return self.read_response()
 
@@ -82,7 +82,7 @@ class CodewerkDCP:
         :return: instance of class Device
         '''
         self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefe, PNDCPHeader.IDENTIFY, PNDCPHeader.REQUEST
+        self.frame, self.service, self.service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
         return self.read_response()[0]
 
@@ -94,9 +94,9 @@ class CodewerkDCP:
         :return: error message, None if no error occurred, str otherwise
         '''
         self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
+        self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         hex_addr = self.ip_to_hex(ip_conf)
-        self.__send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
+        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
         time.sleep(2)
         return self.read_response(once=True, set=True)
 
@@ -112,8 +112,8 @@ class CodewerkDCP:
             raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
         self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.SET, PNDCPHeader.REQUEST
-        self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
+        self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
         time.sleep(2)
         return self.read_response(once=True, set=True)
 
@@ -124,8 +124,8 @@ class CodewerkDCP:
         :return: IP-address (str)
         '''
         self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
-        self.__send_request(PNDCPBlock.IP_ADDRESS[0], PNDCPBlock.IP_ADDRESS[1], 0)
+        self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
+        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
         return self.read_response(once=True)[0].IP
 
     def get_name_of_station(self, mac):
@@ -135,8 +135,8 @@ class CodewerkDCP:
         :return: name of station (decoded str)
         '''
         self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, PNDCPHeader.GET, PNDCPHeader.REQUEST
-        self.__send_request(PNDCPBlock.NAME_OF_STATION[0], PNDCPBlock.NAME_OF_STATION[1], 0)
+        self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
+        self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
         return self.read_response(once=True)[0].name_of_station
 
     def __send_request(self, opt, subopt, length, value=None):
@@ -152,9 +152,9 @@ class CodewerkDCP:
         else:
             block_content = bytes([0x00, 0x01]) + value
             block_length = len(value) + 6 + (1 if len(value) % 2 == 1 else 0)
-        block = PNDCPBlockRequest(opt, subopt, length, block_content)
-        dcp = PNDCPHeader(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length if value else len(block), payload=block)
-        eth = EthernetVLANHeader(s2mac(self.dst_mac), s2mac(self.src_mac), 0x8892, payload=dcp)
+        block = DCPBlockRequest(opt, subopt, length, block_content)
+        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length if value else len(block), payload=block)
+        eth = eth_header(mac_to_hex(self.dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
         self.s.send(bytes(eth))
 
     @staticmethod
@@ -188,26 +188,26 @@ class CodewerkDCP:
         '''
         found = []
         try:
-            with max_timeout(to) as t:
-                while True:
-                    if t.timed_out:
-                        break
-                    try:
-                        data = self.__receive_packet()
-                    except timeout:
-                        continue
+            t = TimeoutLimit(to)
+            while True:
+                if t.timed_out:
+                    break
+                try:
+                    data = self.__receive_packet()
+                except timeout:
+                    continue
 
-                    if data:
-                        ret = self.__parse_dcp_packet(data, set)
-                    else:
-                        continue
-                    if isinstance(ret, Device):
-                        found.append(ret)
-                    elif isinstance(ret, str):
-                        return ret
+                if data:
+                    ret = self.__parse_dcp_packet(data, set)
+                else:
+                    continue
+                if isinstance(ret, Device):
+                    found.append(ret)
+                elif isinstance(ret, str):
+                    return ret
 
-                    if once:
-                        break
+                if once:
+                    break
 
         except TimeoutError:
             pass
@@ -229,16 +229,16 @@ class CodewerkDCP:
         :return: message, if set was successful (if set); Device object otherwise
         '''
 
-        eth = EthernetHeader(data)
+        eth = eth_header(data)
         pro = self.__prove_for_validity(eth)
         if pro:
             blocks = pro.payload
             if set and blocks[0] == 5:
                 msg = self.__response_set(blocks)
                 return msg
-            length = pro.length
+            length = pro.len
             device = Device()
-            device.MAC = mac2s(eth.src)
+            device.MAC = hex_to_mac(eth.source)
             while length > 6:
                 device, block_len = self.__process_block(blocks, device)
                 blocks = blocks[block_len + 4:]
@@ -254,10 +254,10 @@ class CodewerkDCP:
         :param eth: EtherhetHeader data
         :return: Ethernet payload if DCP-response addressed to the source, None otherwise
         '''
-        if mac2s(eth.dst) != self.src_mac or eth.type != PNDCPHeader.ETHER_TYPE:
+        if hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_header.ETHER_TYPE:
             return
-        pro = PNDCPHeader(eth.payload)
-        if not (pro.service_type == PNDCPHeader.RESPONSE):
+        pro = dcp_header(eth.payload)
+        if not (pro.service_type == dcp_header.RESPONSE):
             return
         return pro
 
@@ -269,16 +269,16 @@ class CodewerkDCP:
         :param device: instance of a Device object
         :return: filled instance of a Device object, length of DCP data block
         '''
-        block = PNDCPBlock(blocks)
-        blockoption = (block.option, block.suboption)
-        block_len = block.length
+        block = DCPBlock(blocks)
+        blockoption = (block.opt, block.subopt)
+        block_len = block.len
 
-        if blockoption == PNDCPBlock.NAME_OF_STATION:
+        if blockoption == DCPBlock.NAME_OF_STATION:
             device.name_of_station = block.payload.decode()
-        elif blockoption == PNDCPBlock.IP_ADDRESS:
-            device.IP = s2ip(block.payload[0:4])
-            device.netmask = s2ip(block.payload[4:8])
-            device.gateway = s2ip(block.payload[8:12])
+        elif blockoption == DCPBlock.IP_ADDRESS:
+            device.IP = hex_to_ip(block.payload[0:4])
+            device.netmask = hex_to_ip(block.payload[4:8])
+            device.gateway = hex_to_ip(block.payload[8:12])
 
         if block_len % 2 == 1:
             block_len += 1
