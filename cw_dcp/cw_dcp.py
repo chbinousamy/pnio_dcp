@@ -7,6 +7,7 @@ from .util import *
 from .protocol import *
 import psutil
 import re
+import time
 
 
 class Device:
@@ -188,10 +189,8 @@ class CodewerkDCP:
         '''
         found = []
         try:
-            t = TimeoutLimit(to)
-            while True:
-                if t.timed_out:
-                    break
+            timed_out = time.time() + to
+            while time.time() < timed_out:
                 try:
                     data = self.__receive_packet()
                 except timeout:
