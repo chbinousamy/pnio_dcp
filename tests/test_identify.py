@@ -13,13 +13,18 @@ class TestDCPIdentify:
         socket().recv.side_effect = socket().recv.return_value
 
         devices = instance_dcp.identify_all()
+        macs_identified = []
         assert devices
         for device in devices:
-            assert device.name_of_station
-            assert device.MAC
-            assert device.IP
-            assert device.netmask
-            assert device.gateway
+            macs_identified.append(device.MAC)
+
+            assert device.name_of_station == self.mock.devices[device.MAC].NameOfStation
+            assert device.MAC == self.mock.devices[device.MAC].MAC
+            assert device.IP == self.mock.devices[device.MAC].IP
+            assert device.netmask == self.mock.devices[device.MAC].Netmask
+            assert device.gateway == self.mock.devices[device.MAC].Gateway
+
+        assert macs_identified == self.mock.dst
 
     def test_identify_device(self, instance_dcp):
         instance_dcp, socket = instance_dcp
@@ -31,6 +36,12 @@ class TestDCPIdentify:
 
             identified = instance_dcp.identify(device_mac)
             assert isinstance(identified, cw_dcp.Device)
+            assert identified.name_of_station == self.mock.devices[device_mac].NameOfStation
+            assert identified.MAC == self.mock.devices[device_mac].MAC
+            assert identified.IP == self.mock.devices[device_mac].IP
+            assert identified.netmask == self.mock.devices[device_mac].Netmask
+            assert identified.gateway == self.mock.devices[device_mac].Gateway
+
 
 
 

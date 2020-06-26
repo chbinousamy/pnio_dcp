@@ -15,8 +15,7 @@ class TestDCPGetSet:
             socket().recv.side_effect = socket().recv.return_value
 
             ip = instance_dcp.get_ip_address(device_mac)
-            assert ip
-            print(device_mac, ' ', ip)
+            assert ip == self.mock.devices[device_mac].IP
 
     def test_get_name(self, instance_dcp):
         instance_dcp, socket = instance_dcp
@@ -28,8 +27,7 @@ class TestDCPGetSet:
             socket().recv.side_effect = socket().recv.return_value
 
             name = instance_dcp.get_name_of_station(device_mac)
-            assert name
-            print(device_mac, ' ', name)
+            assert name == self.mock.devices[device_mac].NameOfStation
 
     def test_set_ip(self, instance_dcp):
         instance_dcp, socket = instance_dcp
@@ -42,8 +40,7 @@ class TestDCPGetSet:
             socket().recv.side_effect = socket().recv.return_value
 
             ret_msg = instance_dcp.set_ip_address(device_mac, new_ip)
-            assert ret_msg
-            print('{} -- {}'.format(device_mac, ret_msg))
+            assert int(ret_msg[6]) == int(self.mock.devices[device_mac].err_code)
 
     def test_set_name(self, instance_dcp):
         instance_dcp, socket = instance_dcp
@@ -56,5 +53,4 @@ class TestDCPGetSet:
 
             new_name = 'name-{}'.format(idx)
             ret_msg = instance_dcp.set_name_of_station(self.mock.dst[idx], new_name)
-            assert ret_msg
-            print('{} -- {}'.format(self.mock.dst[idx], ret_msg))
+            assert int(ret_msg[6]) == int(self.mock.devices[self.mock.dst[idx]].err_code)

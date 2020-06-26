@@ -8,6 +8,7 @@ from .protocol import *
 import psutil
 import re
 import time
+import logging
 
 
 class Device:
@@ -165,18 +166,20 @@ class CodewerkDCP:
         :param payload: byte string with DCP payload
         :return: error message, None if no error occurred, str otherwise
         '''
-        return_codes = {0: 'Set successful',
-                        1: 'Option unsupported',
-                        2: 'Suboption unsupported or no DataSet available',
-                        3: 'Suboption not set',
-                        4: 'Resource Error',
-                        5: 'SET not possible by local reasons',
-                        6: 'In operation, SET not possible'}
+        return_codes = {0: 'Code 00: Set successful',
+                        1: 'Code 01: Option unsupported',
+                        2: 'Code 02: Suboption unsupported or no DataSet available',
+                        3: 'Code 03: Suboption not set',
+                        4: 'Code 04: Resource Error',
+                        5: 'Code 05: SET not possible by local reasons',
+                        6: 'Code 06: In operation, SET not possible'}
         block_code = payload[6]
         if block_code != 0:
-            return_message = 'SET unsuccessful, BlockError with code {} ({})'.format(block_code, return_codes[block_code])
+            return_message = '{}, SET unsuccessful'.format(return_codes[block_code])
+            logging.warning(return_message)
         else:
-            return_message = 'SET successful'
+            return_message = return_codes[block_code]
+            logging.info(return_message)
         return return_message
 
     def read_response(self, to=10, once=False, set=False):
@@ -260,8 +263,7 @@ class CodewerkDCP:
             return
         return pro
 
-    @staticmethod
-    def __process_block(blocks, device):
+    def __process_block(self, blocks, device):
         '''
         Process bytes of DCP data block and fill in a Device object with correspondent values
         :param blocks: byte content of a DCP data block
@@ -273,7 +275,7 @@ class CodewerkDCP:
         block_len = block.len
 
         if blockoption == DCPBlock.NAME_OF_STATION:
-            device.name_of_station = block.payload.decode()
+            device.name_of_station = block.payload.rstrip(b'\x00').decode()
         elif blockoption == DCPBlock.IP_ADDRESS:
             device.IP = hex_to_ip(block.payload[0:4])
             device.netmask = hex_to_ip(block.payload[4:8])
@@ -283,3 +285,5 @@ class CodewerkDCP:
             block_len += 1
 
         return device, block_len
+
+
