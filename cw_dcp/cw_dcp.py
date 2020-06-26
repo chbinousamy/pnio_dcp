@@ -263,7 +263,8 @@ class CodewerkDCP:
             return
         return pro
 
-    def __process_block(self, blocks, device):
+    @staticmethod
+    def __process_block(blocks, device):
         '''
         Process bytes of DCP data block and fill in a Device object with correspondent values
         :param blocks: byte content of a DCP data block
