@@ -207,6 +207,8 @@ class CodewerkDCP:
                     found.append(ret)
                 elif isinstance(ret, str):
                     return ret
+                elif not ret:
+                    continue
 
                 if once:
                     break
