@@ -100,7 +100,7 @@ class CodewerkDCP:
         hex_addr = self.ip_to_hex(ip_conf)
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
         time.sleep(2)
-        return self.read_response(once=True, set=True)
+        return self.read_response(set=True)
 
     def set_name_of_station(self, mac, name):
         '''
@@ -117,7 +117,7 @@ class CodewerkDCP:
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
         time.sleep(2)
-        return self.read_response(once=True, set=True)
+        return self.read_response(set=True)
 
     def get_ip_address(self, mac):
         '''
@@ -128,7 +128,7 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
-        return self.read_response(once=True)[0].IP
+        return self.read_response()[0].IP
 
     def get_name_of_station(self, mac):
         '''
@@ -139,7 +139,7 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
-        return self.read_response(once=True)[0].name_of_station
+        return self.read_response()[0].name_of_station
 
     def __send_request(self, opt, subopt, length, value=None):
         '''
@@ -182,11 +182,10 @@ class CodewerkDCP:
             logging.info(return_message)
         return return_message
 
-    def read_response(self, to=10, once=False, set=False):
+    def read_response(self, to=10, set=False):
         '''
         Receive packages in the network, filter DCP packages addressed to the current host and decode them
         :param to: timeout in sec
-        :param once: script should run only once (only 1 package to receive, ex.: get-functions)
         :param set: this function was called inside a set-function, True enables error detection
         :return: string parameter if 'get', DCP payload if 'set', list with instances of class Device otherwise.
         '''
@@ -209,9 +208,6 @@ class CodewerkDCP:
                     return ret
                 elif not ret:
                     continue
-
-                if once:
-                    break
 
         except TimeoutError:
             pass
