@@ -93,7 +93,7 @@ class CodewerkDCP:
         Set or change IP configurations of a specific device
         :param mac: MAC-address of target device
         :param ip_conf: list of strings in order ['ip address', 'subnet mask', 'router']
-        :return: error message, None if no error occurred, str otherwise
+        :return: return message, Code 0 if no error occurred, 1-6 otherwise
         '''
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
@@ -107,7 +107,7 @@ class CodewerkDCP:
         Set or change the name of station of a specific device
         :param mac: MAC-address of target device
         :param name: str with the name to set
-        :return: error message, None if no error occurred, str otherwise
+        :return: return message, Code 0 if no error occurred, 1-6 otherwise
         '''
         valid_pattern = re.compile(r"^[a-z][a-zA-Z0-9\-\.]*$")
         if not re.match(valid_pattern, name):
