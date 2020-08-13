@@ -1,3 +1,9 @@
+default:
+    image: docker.codewerk.de/shacks/windows-python-ci:latest
+    tags:
+        - docker
+        - windows
+
 stages:
   - build
   - setup
@@ -17,13 +23,14 @@ build_package:
 
 setup_venv:
   stage: setup
-  script:
-    - pip install twine
+  script:   
     - cd tests/
     - python -m venv env
     - ./env/Scripts/activate
+    - pip install twine
     - pip install pytest
     - pip install pytest-cov
+    - pip install pylint
     - pip install ../dist/cw_dcp-0.1-py3-none-any.whl
   allow_failure: true
   artifacts:
@@ -38,8 +45,8 @@ test:
   script:
     - cd tests/
     - ./env/Scripts/activate
-    - pytest -s --junitxml=results/run_tests.xml --cov-report term --cov-report xml:coverage.xml --cov=cw_dcp
-    - sonar-scanner.bat -D"sonar.projectKey=cw_dcp" -D"sonar.sources=env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
+    - pytest -s -o junit_family=xunit2 --junitxml=results/run_tests.xml --cov-report term --cov-report xml:coverage.xml --cov=cw_dcp
+    - sonar-scanner -D"sonar.projectKey=cw_dcp" -D"sonar.sources=env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
   allow_failure: true
   artifacts:
     when: always
