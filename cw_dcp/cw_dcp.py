@@ -7,7 +7,7 @@ import time
 import logging
 import psutil
 from scapy.all import conf
-from socket import timeout
+import socket
 from .protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from .util import mac_to_hex, hex_to_mac, hex_to_ip
 from .error import DcpError, DcpTimeoutError
@@ -88,7 +88,10 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
-        return self.read_response()[0]
+        response = self.read_response()
+        if len(response) == 0:
+            raise DcpTimeoutError
+        return response[0]
 
     def set_ip_address(self, mac, ip_conf):
         """
@@ -102,7 +105,10 @@ class CodewerkDCP:
         hex_addr = self.ip_to_hex(ip_conf)
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
         time.sleep(2)
-        return self.read_response(set=True)
+        response = self.read_response(set=True)
+        if len(response) == 0:
+            raise DcpTimeoutError
+        return response
 
     def set_name_of_station(self, mac, name):
         """
@@ -119,7 +125,10 @@ class CodewerkDCP:
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
         time.sleep(2)
-        return self.read_response(set=True)
+        response = self.read_response(set=True)
+        if len(response) == 0:
+            raise DcpTimeoutError
+        return response
 
     def get_ip_address(self, mac):
         """
@@ -130,7 +139,10 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
-        return self.read_response()[0].IP
+        response = self.read_response()
+        if len(response) == 0:
+            raise DcpTimeoutError
+        return response[0].IP
 
     def get_name_of_station(self, mac):
         """
@@ -141,7 +153,10 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
-        return self.read_response()[0].name_of_station
+        response = self.read_response()
+        if len(response) == 0:
+            raise DcpTimeoutError
+        return response[0].name_of_station
 
     def __send_request(self, opt, subopt, length, value=None):
         """
@@ -197,7 +212,7 @@ class CodewerkDCP:
             while time.time() < timed_out:
                 try:
                     data = self.__receive_packet()
-                except timeout:
+                except socket.timeout:
                     continue
 
                 if data:
