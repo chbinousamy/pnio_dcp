@@ -2,7 +2,7 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
-from .util import *
+from .util import create_bytestr, hex_to_mac
 
 eth_header = create_bytestr("eth_header", (
         ("destination",  ("6s", hex_to_mac)),
