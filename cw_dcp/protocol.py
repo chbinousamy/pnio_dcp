@@ -2,9 +2,6 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
-
-from collections import namedtuple
-
 from .util import *
 
 eth_header = create_bytestr("eth_header", (

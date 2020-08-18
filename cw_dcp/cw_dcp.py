@@ -2,13 +2,13 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
-from scapy.all import *
-from .util import *
-from .protocol import *
+from scapy.all import conf
 import psutil
 import re
 import time
 import logging
+from .protocol import *
+from .error import *
 
 
 class Device:
