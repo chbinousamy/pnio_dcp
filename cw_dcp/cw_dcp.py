@@ -18,6 +18,7 @@ class Device:
     IP = ''
     netmask = ''
     gateway = ''
+    family = ''
 
 
 class CodewerkDCP:
@@ -140,6 +141,18 @@ class CodewerkDCP:
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
         return self.read_response()[0].name_of_station
+
+    def reset_to_factory(self, mac):
+        '''
+        Reset the communication parameters of the specified device to factory settings.
+        :param mac: MAC-address of target device
+        :return: return message, Code 0 if no error occurred, 1-6 otherwise
+        '''
+        self.dst_mac = mac
+        self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        value = (4).to_bytes(2, 'big')
+        self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value)+2, value)
+        return self.read_response(set=True)
 
     def __send_request(self, opt, subopt, length, value=None):
         '''
@@ -279,6 +292,8 @@ class CodewerkDCP:
             device.IP = hex_to_ip(block.payload[0:4])
             device.netmask = hex_to_ip(block.payload[4:8])
             device.gateway = hex_to_ip(block.payload[8:12])
+        elif blockoption == DCPBlock.DEVICE_FAMILY:
+            device.family = block.payload.rstrip(b'\x00').decode()
 
         if block_len % 2 == 1:
             block_len += 1

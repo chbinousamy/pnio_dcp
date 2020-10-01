@@ -23,6 +23,7 @@ class TestDCPIdentify:
             assert device.IP == self.mock.devices[device.MAC].IP
             assert device.netmask == self.mock.devices[device.MAC].Netmask
             assert device.gateway == self.mock.devices[device.MAC].Gateway
+            assert device.family == self.mock.devices[device.MAC].Family
 
         assert macs_identified == self.mock.dst
 
@@ -41,6 +42,7 @@ class TestDCPIdentify:
             assert identified.IP == self.mock.devices[device_mac].IP
             assert identified.netmask == self.mock.devices[device_mac].Netmask
             assert identified.gateway == self.mock.devices[device_mac].Gateway
+            assert identified.family == self.mock.devices[device_mac].Family
 
 
 
