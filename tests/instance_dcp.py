@@ -6,7 +6,7 @@ from mock_return import MockReturn
 
 
 @pytest.fixture(scope='function')
-@patch('cw_dcp.cw_dcp.scapy.all.conf.L2socket')
+@patch('scapy.all.conf.L2socket')
 @patch('cw_dcp.cw_dcp.psutil')
 def instance_dcp(psutil, socket):
 

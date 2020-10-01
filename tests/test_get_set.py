@@ -1,5 +1,7 @@
 import pytest
+from socket import timeout
 from mock_return import MockReturn
+from cw_dcp import DcpTimeoutError
 
 
 class TestDCPGetSet:
@@ -17,6 +19,15 @@ class TestDCPGetSet:
             ip = instance_dcp.get_ip_address(device_mac)
             assert ip == self.mock.devices[device_mac].IP
 
+    def test_get_ip_no_response(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        device_mac = self.mock.dst[0]
+        self.mock.dst_custom = device_mac
+        socket().recv.side_effect = timeout
+
+        with pytest.raises(DcpTimeoutError):
+            instance_dcp.get_ip_address(device_mac)
+
     def test_get_name(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         for device_mac in self.mock.dst:
@@ -28,6 +39,15 @@ class TestDCPGetSet:
 
             name = instance_dcp.get_name_of_station(device_mac)
             assert name == self.mock.devices[device_mac].NameOfStation
+
+    def test_get_name_no_response_raises_timeout(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        device_mac = self.mock.dst[0]
+        self.mock.dst_custom = device_mac
+        socket().recv.side_effect = timeout
+
+        with pytest.raises(DcpTimeoutError):
+            instance_dcp.get_name_of_station(device_mac)
 
     def test_set_ip(self, instance_dcp):
         instance_dcp, socket = instance_dcp
@@ -42,6 +62,15 @@ class TestDCPGetSet:
             ret_msg = instance_dcp.set_ip_address(device_mac, new_ip)
             assert int(ret_msg[6]) == int(self.mock.devices[device_mac].err_code)
 
+    def test_set_ip_no_response_raises_timeout(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        device_mac = self.mock.dst[0]
+        self.mock.dst_custom = device_mac
+        socket().recv.side_effect = timeout
+
+        with pytest.raises(DcpTimeoutError):
+            instance_dcp.set_ip_address(device_mac, ['127.0.0.1', '255.255.255.0', '0.0.0.0'])
+
     def test_set_name(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         for idx in range(len(self.mock.dst)):
@@ -54,3 +83,12 @@ class TestDCPGetSet:
             new_name = 'name-{}'.format(idx)
             ret_msg = instance_dcp.set_name_of_station(self.mock.dst[idx], new_name)
             assert int(ret_msg[6]) == int(self.mock.devices[self.mock.dst[idx]].err_code)
+
+    def test_set_name_no_response_raises_timeout(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        device_mac = self.mock.dst[0]
+        self.mock.dst_custom = device_mac
+        socket().recv.side_effect = timeout
+
+        with pytest.raises(DcpTimeoutError):
+            instance_dcp.set_name_of_station(device_mac, 'test-name-of-station')

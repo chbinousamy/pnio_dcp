@@ -1,5 +1,6 @@
 import pytest
 import cw_dcp
+from socket import timeout
 from mock_return import MockReturn
 
 
@@ -27,6 +28,14 @@ class TestDCPIdentify:
 
         assert macs_identified == self.mock.dst
 
+    def test_identify_all_devices_no_responses_returns_empty_list(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.side_effect = timeout
+
+        devices = instance_dcp.identify_all()
+
+        assert len(devices) == 0
+
     def test_identify_device(self, instance_dcp):
         instance_dcp, socket = instance_dcp
         for device_mac in self.mock.dst:
@@ -44,7 +53,13 @@ class TestDCPIdentify:
             assert identified.gateway == self.mock.devices[device_mac].Gateway
             assert identified.family == self.mock.devices[device_mac].Family
 
+    def test_identify_device_no_response_raises_timeout(self, instance_dcp):
+        instance_dcp, socket = instance_dcp
+        socket().recv.side_effect = timeout
+        device_mac = self.mock.dst[0]
 
+        with pytest.raises(cw_dcp.DcpTimeoutError):
+            instance_dcp.identify(device_mac)
 
 
 

@@ -2,14 +2,9 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
-
-from socket import *
-from sys import argv, exit, stdout, stderr
 from struct import pack, unpack, calcsize
 from collections import namedtuple, OrderedDict
 import binascii
-
-import time
 
 
 def mac_to_hex(mac):
