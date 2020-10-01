@@ -44,8 +44,10 @@ class DCPBlock(create_bytestr("DCPBlockRequest", (
 ), payload_field_len="len", offset=-2)):
 
     IP_ADDRESS = (1, 2)
+    DEVICE_FAMILY = (2, 1)
     NAME_OF_STATION = (2, 2)
     DEVICE_ID = (2, 3)
+    RESET_TO_FACTORY = (5, 6)
     ALL = (0xFF, 0xFF)
 
 
