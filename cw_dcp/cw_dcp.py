@@ -28,7 +28,13 @@ class CodewerkDCP:
         self.devices = []
         self.dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
-        self.s = conf.L2socket(iface=self.iface)
+
+        # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
+        # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
+        # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
+        socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
+
+        self.s = conf.L2socket(iface=self.iface, filter=socket_filter)
         self.frame = None
         self.service = None
         self.service_type = None
