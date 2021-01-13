@@ -60,6 +60,3 @@ class TestDCPIdentify:
 
         with pytest.raises(cw_dcp.DcpTimeoutError):
             instance_dcp.identify(device_mac)
-
-
-

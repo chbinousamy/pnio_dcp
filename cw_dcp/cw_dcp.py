@@ -14,7 +14,6 @@ from .error import DcpError, DcpTimeoutError
 
 
 class Device:
-
     name_of_station = ''
     MAC = ''
     IP = ''
@@ -28,10 +27,20 @@ class CodewerkDCP:
         self.devices = []
         self.dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
-        self.s = conf.L2socket(iface=self.iface)
+
+        # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
+        # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
+        # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
+        self.socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
+
+        self.s = conf.L2socket(iface=self.iface, filter=self.socket_filter)
         self.frame = None
         self.service = None
         self.service_type = None
+
+    def reopen_socket(self):
+        self.s.close()
+        self.s = conf.L2socket(iface=self.iface, filter=self.socket_filter)
 
     @staticmethod
     def __get_nic(ip):
@@ -104,7 +113,7 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         hex_addr = self.ip_to_hex(ip_conf)
-        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr)+2, hex_addr)
+        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2, hex_addr)
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
@@ -124,7 +133,8 @@ class CodewerkDCP:
         name = name.lower()
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
-        self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name)+2, bytes(name, encoding='ascii'))
+        self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name) + 2,
+                            bytes(name, encoding='ascii'))
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
@@ -168,7 +178,7 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         value = (4).to_bytes(2, 'big')
-        self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value)+2, value)
+        self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value) + 2, value)
         return self.read_response(set=True)
 
     def __send_request(self, opt, subopt, length, value=None):
@@ -179,13 +189,21 @@ class CodewerkDCP:
         :param length: length of DCP payload data, 0 if no data to send
         :param value: data to send, only used in 'set' functions
         """
+        # Reopen the socket for each request. This avoids receiving outdated responses to another DCP instance in cases
+        # where two or more instances are running on the same machine (i.e. with the same mac address).
+        # Note: this does not help if the two instances make requests at the same time
+        # This avoids processing outdated responses to other DCP instances with the same mac address
+        # (most likely not a particularly common occurrence)
+        self.reopen_socket()
+
         if not value:
             block_content = bytes()
         else:
             block_content = bytes([0x00, 0x01]) + value
             block_length = len(value) + 6 + (1 if len(value) % 2 == 1 else 0)
         block = DCPBlockRequest(opt, subopt, length, block_content)
-        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length if value else len(block), payload=block)
+        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080,
+                         block_length if value else len(block), payload=block)
         eth = eth_header(mac_to_hex(self.dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
         self.s.send(bytes(eth))
 
@@ -316,5 +334,3 @@ class CodewerkDCP:
             block_len += 1
 
         return device, block_len
-
-

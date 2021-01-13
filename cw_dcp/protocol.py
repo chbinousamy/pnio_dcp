@@ -5,9 +5,9 @@ All Rights Reserved.
 from .util import create_bytestr, hex_to_mac
 
 eth_header = create_bytestr("eth_header", (
-        ("destination",  ("6s", hex_to_mac)),
-        ("source",  ("6s", hex_to_mac)),
-        ("type", ("H", "0x%04X"))
+    ("destination",  ("6s", hex_to_mac)),
+    ("source",       ("6s", hex_to_mac)),
+    ("type",         ("H", "0x%04X"))
 ))
 
 dcp_header = create_bytestr("dcp_header", (
@@ -16,7 +16,7 @@ dcp_header = create_bytestr("dcp_header", (
     ("service_type", "B"),
     ("xid",          ("I", "0x%08X")),
     ("resp",         "H"),
-    ("len",       "H")
+    ("len",          "H")
 ), options={
     "ETHER_TYPE": 0x8892,
     "GET": 3,
@@ -46,7 +46,3 @@ class DCPBlock(create_bytestr("DCPBlockRequest", (
     DEVICE_ID = (2, 3)
     RESET_TO_FACTORY = (5, 6)
     ALL = (0xFF, 0xFF)
-
-
-
-

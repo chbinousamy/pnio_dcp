@@ -49,7 +49,8 @@ def create_bytestr(name, fields, options={}, payload=True, payload_field_len=Non
         def __new__(cls, *args, **kwargs):
             # unpack (parse packet)
             if len(args) == 1:
-                unpacked, keywords = unpack_data_w_keywords(args, preamble, preamble_size, payload, payload_field_len, fields, offset)
+                unpacked, keywords = unpack_data_w_keywords(args, preamble, preamble_size, payload, payload_field_len,
+                                                            fields, offset)
                 self = t.__new__(cls, *unpacked, **keywords)
             else:
                 self = t.__new__(cls, *args, **kwargs)
@@ -71,5 +72,3 @@ def create_bytestr(name, fields, options={}, payload=True, payload_field_len=Non
         setattr(_Bytestr, k, v)
 
     return _Bytestr
-
-
