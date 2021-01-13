@@ -21,4 +21,3 @@ def instance_dcp(psutil, socket):
     dcp = cw_dcp.CodewerkDCP(ip)
     dcp.reopen_socket = MagicMock()
     return dcp, socket
-

@@ -17,7 +17,6 @@ class MockDevice:
 
 
 class MockReturn:
-
     testnetz = {'Testnetz': [{'family': -1, 1: '00-50-56-AC-DD-2E', 'netmask': None, 'broadcast': None, 'ptp': None},
                              {'family': 2, 1: '10.0.2.124', 'netmask': '255.255.240.0', 'broadcast': None, 'ptp': None}]}
     src = '00:50:56:ac:dd:2e'
@@ -101,7 +100,7 @@ class MockReturn:
             opt, subopt = 0x02, 0x02
             if len(self.devices[self.dst_custom].NameOfStation) % 2 == 1:
                 content = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation,
-                                                   encoding='ascii') + bytes([0x00])
+                                                      encoding='ascii') + bytes([0x00])
             else:
                 content = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation, encoding='ascii')
         block_content = content + content_tail
