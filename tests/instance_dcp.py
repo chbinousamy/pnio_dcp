@@ -1,7 +1,7 @@
 import pytest
 import cw_dcp
 import configparser
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from mock_return import MockReturn
 
 
@@ -19,5 +19,6 @@ def instance_dcp(psutil, socket):
     ip = config.get('BasicConfigurations', 'ip')
     assert ip, 'IP-Address is not set'
     dcp = cw_dcp.CodewerkDCP(ip)
+    dcp.reopen_socket = MagicMock()
     return dcp, socket
 
