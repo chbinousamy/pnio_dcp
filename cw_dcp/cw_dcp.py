@@ -32,12 +32,16 @@ class CodewerkDCP:
         # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
         # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
         # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
-        socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
+        self.socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
 
-        self.s = conf.L2socket(iface=self.iface, filter=socket_filter)
+        self.s = conf.L2socket(iface=self.iface, filter=self.socket_filter)
         self.frame = None
         self.service = None
         self.service_type = None
+
+    def reopen_socket(self):
+        self.s.close()
+        self.s = conf.L2socket(iface=self.iface, filter=self.socket_filter)
 
     @staticmethod
     def __get_nic(ip):
@@ -185,6 +189,13 @@ class CodewerkDCP:
         :param length: length of DCP payload data, 0 if no data to send
         :param value: data to send, only used in 'set' functions
         """
+        # Reopen the socket for each request. This avoids receiving outdated responses to another DCP instance in cases
+        # where two or more instances are running on the same machine (i.e. with the same mac address).
+        # Note: this does not help if the two instances make requests at the same time
+        # This avoids processing outdated responses to other DCP instances with the same mac address
+        # (most likely not a particularly common occurrence)
+        self.reopen_socket()
+
         if not value:
             block_content = bytes()
         else:
