@@ -9,7 +9,7 @@ class TestDCPIdentify:
 
     def test_identify_all_devices(self, instance_dcp):
         instance_dcp, socket = instance_dcp
-        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL')
+        socket().recv.return_value = self.mock.identify_response('IDENTIFY_ALL', xid=instance_dcp.xid + 1)
         socket().recv.return_value.append(TimeoutError)
         socket().recv.side_effect = socket().recv.return_value
 
@@ -40,7 +40,7 @@ class TestDCPIdentify:
         instance_dcp, socket = instance_dcp
         for device_mac in self.mock.dst:
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('IDENTIFY')
+            socket().recv.return_value = self.mock.identify_response('IDENTIFY', xid=instance_dcp.xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
