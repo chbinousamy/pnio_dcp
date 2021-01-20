@@ -312,6 +312,9 @@ class CodewerkDCP:
         pro = dcp_header(eth.payload)
         if not (pro.service_type == dcp_header.RESPONSE):
             return
+        if pro.xid != self.xid:
+            logging.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(pro.xid)} != {hex(self.xid)}")
+            return
         return pro
 
     @staticmethod
