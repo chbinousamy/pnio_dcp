@@ -28,6 +28,9 @@ class CodewerkDCP:
         self.dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
 
+        # the XID is the id of the current transaction and can be used to identify the responses to request
+        self.xid = 0x7010052  # some initial value, is incremented with each request
+
         # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
         # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
         # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
@@ -198,13 +201,14 @@ class CodewerkDCP:
         # This avoids processing outdated responses to other DCP instances with the same mac address
         # (most likely not a particularly common occurrence)
         self.reopen_socket()
+        self.xid += 1
 
         block_content = value if value else bytes()
         if len(block_content) % 2:  # if the block content has odd length, add one byte padding at the end
             block_content += bytes([0x00])
         block = DCPBlockRequest(opt, subopt, length, block_content)
 
-        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080, len(block), payload=block)
+        dcp = dcp_header(self.frame, self.service, self.service_type, self.xid, 0x0080, len(block), payload=block)
         eth = eth_header(mac_to_hex(self.dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
         self.s.send(bytes(eth))
 
