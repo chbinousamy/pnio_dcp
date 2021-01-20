@@ -200,10 +200,11 @@ class CodewerkDCP:
         self.reopen_socket()
 
         block_content = value if value else bytes()
+        if len(block_content) % 2:  # if the block content has odd length, add one byte padding at the end
+            block_content += bytes([0x00])
         block = DCPBlockRequest(opt, subopt, length, block_content)
-        block_length = len(block) + (len(block) % 2)  # round up odd block lengths
 
-        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length, payload=block)
+        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080, len(block), payload=block)
         eth = eth_header(mac_to_hex(self.dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
         self.s.send(bytes(eth))
 
