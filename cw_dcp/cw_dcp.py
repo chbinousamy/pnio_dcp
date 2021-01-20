@@ -113,7 +113,9 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         hex_addr = self.ip_to_hex(ip_conf)
-        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2, hex_addr)
+        block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
+        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2,
+                            block_qualifier + hex_addr)
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
@@ -133,8 +135,9 @@ class CodewerkDCP:
         name = name.lower()
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name) + 2,
-                            bytes(name, encoding='ascii'))
+                            block_qualifier + bytes(name, encoding='ascii'))
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
@@ -178,7 +181,7 @@ class CodewerkDCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         value = (4).to_bytes(2, 'big')
-        self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value) + 2, value)
+        self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value), value)
         return self.read_response(set=True)
 
     def __send_request(self, opt, subopt, length, value=None):
@@ -196,14 +199,11 @@ class CodewerkDCP:
         # (most likely not a particularly common occurrence)
         self.reopen_socket()
 
-        if not value:
-            block_content = bytes()
-        else:
-            block_content = bytes([0x00, 0x01]) + value
-            block_length = len(value) + 6 + (1 if len(value) % 2 == 1 else 0)
+        block_content = value if value else bytes()
         block = DCPBlockRequest(opt, subopt, length, block_content)
-        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080,
-                         block_length if value else len(block), payload=block)
+        block_length = len(block) + (len(block) % 2)  # round up odd block lengths
+
+        dcp = dcp_header(self.frame, self.service, self.service_type, 0x7010052, 0x0080, block_length, payload=block)
         eth = eth_header(mac_to_hex(self.dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
         self.s.send(bytes(eth))
 
