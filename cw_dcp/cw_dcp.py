@@ -2,16 +2,18 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
+import logging
 import random
 import re
+import socket
 import time
-import logging
+
 import psutil
 from scapy.all import conf
-import socket
+
+from .error import DcpTimeoutError
 from .protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from .util import mac_to_hex, hex_to_mac, hex_to_ip
-from .error import DcpError, DcpTimeoutError
 
 
 class Device:

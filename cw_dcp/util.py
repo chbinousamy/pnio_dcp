@@ -2,9 +2,9 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
-from struct import pack, unpack, calcsize
-from collections import namedtuple, OrderedDict
 import binascii
+from collections import namedtuple, OrderedDict
+from struct import pack, unpack, calcsize
 
 
 def mac_to_hex(mac):
