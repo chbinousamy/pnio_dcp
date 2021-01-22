@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 setup(name="pnio_dcp",
-      version='0.1',
+      use_scm_version=True,
+      setup_requires=['setuptools_scm'],
       description='Structure based on DCP protocol to discover and configure devices in the network',
       url='https://cw-gitlab.codewerk.de/shacks/python/cw_dcp.git',
       author='Vladyslava Lazepka',
