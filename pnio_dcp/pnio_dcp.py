@@ -22,7 +22,7 @@ class Device:
     family = ''
 
 
-class CodewerkDCP:
+class DCP:
     def __init__(self, ip):
         self.devices = []
         self.dst_mac = ''

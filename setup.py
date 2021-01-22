@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-setup(name="cw_dcp",
+setup(name="pnio_dcp",
       version='0.1',
       description='Structure based on DCP protocol to discover and configure devices in the network',
       url='https://cw-gitlab.codewerk.de/shacks/python/cw_dcp.git',

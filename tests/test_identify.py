@@ -1,5 +1,5 @@
 import pytest
-import cw_dcp
+import pnio_dcp
 from socket import timeout
 from mock_return import MockReturn
 
@@ -45,7 +45,7 @@ class TestDCPIdentify:
             socket().recv.side_effect = socket().recv.return_value
 
             identified = instance_dcp.identify(device_mac)
-            assert isinstance(identified, cw_dcp.Device)
+            assert isinstance(identified, pnio_dcp.Device)
             assert identified.name_of_station == self.mock.devices[device_mac].NameOfStation
             assert identified.MAC == self.mock.devices[device_mac].MAC
             assert identified.IP == self.mock.devices[device_mac].IP
@@ -58,5 +58,5 @@ class TestDCPIdentify:
         socket().recv.side_effect = timeout
         device_mac = self.mock.dst[0]
 
-        with pytest.raises(cw_dcp.DcpTimeoutError):
+        with pytest.raises(pnio_dcp.DcpTimeoutError):
             instance_dcp.identify(device_mac)
