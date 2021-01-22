@@ -2,6 +2,7 @@
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 """
+import random
 import re
 import time
 import logging
@@ -28,8 +29,8 @@ class CodewerkDCP:
         self.dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
 
-        # the XID is the id of the current transaction and can be used to identify the responses to request
-        self.xid = 0x7010052  # some initial value, is incremented with each request
+        # the XID is the id of the current transaction and can be used to identify the responses to a request
+        self.xid = int(random.getrandbits(32))  # initialize it with a random value
 
         # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
         # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
