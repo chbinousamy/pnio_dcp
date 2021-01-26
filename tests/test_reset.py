@@ -11,7 +11,7 @@ class TestDCPReset:
             before_family = self.mock.devices[device_mac].Family
 
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('RESET')
+            socket().recv.return_value = self.mock.identify_response('RESET', xid=instance_dcp.xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
