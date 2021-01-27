@@ -31,7 +31,7 @@ setup_venv:
     - pip install pytest
     - pip install pytest-cov
     - pip install pylint
-    - pip install ../dist/cw_dcp-0.1-py3-none-any.whl
+    - pip install --find-links=../dist/ pnio_dcp
   allow_failure: true
   artifacts:
     paths:
@@ -46,7 +46,7 @@ test:
     - cd tests/
     - ./env/Scripts/activate
     - pytest -s -o junit_family=xunit2 --junitxml=results/run_tests.xml --cov-report term --cov-report xml:coverage.xml --cov=cw_dcp
-    - sonar-scanner -D"sonar.projectKey=cw_dcp" -D"sonar.sources=env/Lib/site-packages/cw_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
+    - sonar-scanner -D"sonar.projectKey=cw_dcp" -D"sonar.sources=env/Lib/site-packages/pnio_dcp" -D"sonar.host.url=$SQ_URL" -D"sonar.login=$SQ_TOKEN" -D"sonar.scm.disabled=true"
   allow_failure: true
   artifacts:
     when: always

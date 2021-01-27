@@ -1,5 +1,5 @@
 import pytest
-import cw_dcp
+import pnio_dcp
 import configparser
 from unittest.mock import patch, MagicMock
 from mock_return import MockReturn
@@ -7,7 +7,7 @@ from mock_return import MockReturn
 
 @pytest.fixture(scope='function')
 @patch('scapy.all.conf.L2socket')
-@patch('cw_dcp.cw_dcp.psutil')
+@patch('pnio_dcp.pnio_dcp.psutil')
 def instance_dcp(psutil, socket):
 
     mock_return = MockReturn()
@@ -18,6 +18,6 @@ def instance_dcp(psutil, socket):
     config.read('testconfig.ini')
     ip = config.get('BasicConfigurations', 'ip')
     assert ip, 'IP-Address is not set'
-    dcp = cw_dcp.CodewerkDCP(ip)
+    dcp = pnio_dcp.DCP(ip)
     dcp.reopen_socket = MagicMock()
     return dcp, socket

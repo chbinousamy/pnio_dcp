@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
-setup(name="cw_dcp",
-      version='0.1',
+setup(name="pnio_dcp",
+      use_scm_version=True,
+      setup_requires=['setuptools_scm'],
       description='Structure based on DCP protocol to discover and configure devices in the network',
       url='https://cw-gitlab.codewerk.de/shacks/python/cw_dcp.git',
       author='Vladyslava Lazepka',
       author_email='vlada.lazepka@codewerk.de',
       license='Copyright (c) 2020 Codewerk GmbH, Karlsruhe.',
       packages=find_packages(),
-      install_requires=['scapy', 'psutil'],
+      install_requires=['scapy', 'psutil', 'setuptools_scm', 'importlib_metadata'],
       zip_safe=False)

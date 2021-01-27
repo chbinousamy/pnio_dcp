@@ -26,7 +26,7 @@ class Device:
     family = ''
 
 
-class CodewerkDCP:
+class DCP:
     def __init__(self, ip):
         """
         Create a new instance, use the given ip to select the network interface.
