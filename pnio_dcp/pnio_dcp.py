@@ -42,7 +42,7 @@ class DCP:
         self.service = None
         self.service_type = None
 
-    def reopen_socket(self):
+    def __reopen_socket(self):
         self.s.close()
         self.s = conf.L2socket(iface=self.iface, filter=self.socket_filter)
 
@@ -61,7 +61,7 @@ class DCP:
                 return iface_mac.replace('-', ':').lower(), iface_name
 
     @staticmethod
-    def ip_to_hex(ip_conf):
+    def __ip_to_hex(ip_conf):
         """
         Converts list containing strings with IP-address, subnet mask and router into byte-string.
         :param ip_conf: list of strings in order ['ip address', 'subnet mask', 'router']
@@ -91,7 +91,7 @@ class DCP:
         self.dst_mac = '01:0e:cf:00:00:00'
         self.frame, self.service, self.service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
-        return self.read_response()
+        return self.__read_response()
 
     def identify(self, mac):
         """
@@ -102,7 +102,7 @@ class DCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
-        response = self.read_response()
+        response = self.__read_response()
         if len(response) == 0:
             raise DcpTimeoutError
         return response[0]
@@ -116,12 +116,12 @@ class DCP:
         """
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
-        hex_addr = self.ip_to_hex(ip_conf)
+        hex_addr = self.__ip_to_hex(ip_conf)
         block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2,
                             block_qualifier + hex_addr)
         time.sleep(2)
-        response = self.read_response(set=True)
+        response = self.__read_response(set=True)
         if len(response) == 0:
             raise DcpTimeoutError
         return response
@@ -143,7 +143,7 @@ class DCP:
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name) + 2,
                             block_qualifier + bytes(name, encoding='ascii'))
         time.sleep(2)
-        response = self.read_response(set=True)
+        response = self.__read_response(set=True)
         if len(response) == 0:
             raise DcpTimeoutError
         return response
@@ -157,7 +157,7 @@ class DCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
-        response = self.read_response()
+        response = self.__read_response()
         if len(response) == 0:
             raise DcpTimeoutError
         return response[0].IP
@@ -171,7 +171,7 @@ class DCP:
         self.dst_mac = mac
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
-        response = self.read_response()
+        response = self.__read_response()
         if len(response) == 0:
             raise DcpTimeoutError
         return response[0].name_of_station
@@ -186,7 +186,7 @@ class DCP:
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         value = (4).to_bytes(2, 'big')
         self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value), value)
-        return self.read_response(set=True)
+        return self.__read_response(set=True)
 
     def __send_request(self, opt, subopt, length, value=None):
         """
@@ -201,7 +201,7 @@ class DCP:
         # Note: this does not help if the two instances make requests at the same time
         # This avoids processing outdated responses to other DCP instances with the same mac address
         # (most likely not a particularly common occurrence)
-        self.reopen_socket()
+        self.__reopen_socket()
         self.xid += 1
 
         block_content = value if value else bytes()
@@ -236,7 +236,7 @@ class DCP:
             logging.info(return_message)
         return return_message
 
-    def read_response(self, to=10, set=False):
+    def __read_response(self, to=10, set=False):
         """
         Receive packages in the network, filter DCP packages addressed to the current host and decode them
         :param to: timeout in sec

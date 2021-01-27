@@ -19,5 +19,5 @@ def instance_dcp(psutil, socket):
     ip = config.get('BasicConfigurations', 'ip')
     assert ip, 'IP-Address is not set'
     dcp = pnio_dcp.DCP(ip)
-    dcp.reopen_socket = MagicMock()
+    dcp._DCP__reopen_socket = MagicMock()
     return dcp, socket
