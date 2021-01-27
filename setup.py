@@ -8,5 +8,5 @@ setup(name="pnio_dcp",
       author_email='vlada.lazepka@codewerk.de',
       license='Copyright (c) 2020 Codewerk GmbH, Karlsruhe.',
       packages=find_packages(),
-      install_requires=['scapy', 'psutil'],
+      install_requires=['scapy', 'psutil', 'setuptools_scm'],
       zip_safe=False)
