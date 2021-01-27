@@ -9,6 +9,18 @@ eth_header = create_bytestr("eth_header", (
     ("source",       ("6s", hex_to_mac)),
     ("type",         ("H", "0x%04X"))
 ))
+"""
+Define a eth_header class using create_bytestr with the following characteristics:
+- a subclass of a namedtuple with the attributes: destination, source, type, and payload
+- the __new__ method takes either
+    - the 3 values for destination, source, and type as args and the value for payload as kwargs
+    - or a single bytes object as args which will be unpacked to an eth_header (see below for the expected format)
+- a __bytes__ method to convert the eth_header to a bytes object with the following format:
+    - a preamble with the struct format ">6s6sH"
+    - followed by a payload of arbitrary length
+    - this is also the format expected by __new__ when given only a single args
+- a __len__ method the get the length
+"""
 
 dcp_header = create_bytestr("dcp_header", (
     ("frame_id",     ("H", "0x%04X")),
@@ -25,12 +37,37 @@ dcp_header = create_bytestr("dcp_header", (
     "REQUEST": 0,
     "RESPONSE": 1
 })
+"""
+Define a dcp_header class using create_bytestr with the following characteristics:
+- a subclass of a namedtuple with the attributes: frame_id, service_id, service_type, xid, resp, len, and payload
+- additional attributes ETHER_TYPE, GET, SET, IDENTIFY, REQUEST, and RESPONSE with the values as defined above.
+- the __new__ method takes either
+    - 6 values for frame_id, service_id, service_type, xid, resp, and len as args and the value for payload as kwargs
+    - or a single bytes object as args which will be unpacked to a dcp_header (see below for the expected format)
+- a __bytes__ method to convert the dcp_header to a bytes object with the following format:
+    - a preamble with the struct format ">HBBIHH"
+    - followed by a payload of arbitrary length
+    - this is also the format expected by __new__ when given only a single args
+- a __len__ method the get the length
+"""
 
 DCPBlockRequest = create_bytestr("DCPBlockRequest", (
     ("opt",    "B"),
     ("subopt", "B"),
     ("len",    "H")
 ), payload_field_len="len")
+"""
+Define a DCPBlockRequest class using create_bytestr with the following characteristics:
+- a subclass of a namedtuple with the attributes: opt, subopt, len, and payload
+- the __new__ method takes either
+    - the 3 values for opt, subopt, and len as args and the value for payload as kwargs
+    - or a single bytes object as args which will be unpacked to a DCPBlockRequest (see below for the expected format)
+- a __bytes__ method to convert the DCPBlockRequest to a bytes object with the following format:
+    - a preamble with the struct format ">BBH"
+    - followed by a payload of length equal to the length specified by the len field
+    - this is also the format expected by __new__ when given only a single args
+- a __len__ method the get the length
+"""
 
 
 class DCPBlock(create_bytestr("DCPBlockRequest", (
@@ -39,7 +76,18 @@ class DCPBlock(create_bytestr("DCPBlockRequest", (
     ("len",    "H"),
     ("status",    "H"),
 ), payload_field_len="len", offset=-2)):
-
+    """
+    The DCPBlock inherits from a class defined by create_bytestr with the following characteristics:
+    - a subclass of a namedtuple with the attributes: opt, subopt, len, status, and payload
+    - the __new__ method takes either
+        - the 4 values for opt, subopt, len, and status as args and the value for payload as kwargs
+        - or a single bytes object as args which will be unpacked to this class (see below for the expected format)
+    - a __bytes__ method to convert the class to a bytes object with the following format:
+        - a preamble with the struct format ">BBHH"
+        - followed by a payload of length equal to the length specified by the len field - 2
+        - this is also the format expected by __new__ when given only a single args
+    - a __len__ method the get the length
+    """
     IP_ADDRESS = (1, 2)
     DEVICE_FAMILY = (2, 1)
     NAME_OF_STATION = (2, 2)
