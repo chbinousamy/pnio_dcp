@@ -18,12 +18,14 @@ from .util import mac_to_hex, hex_to_mac, hex_to_ip
 
 class Device:
     """A DCP device defined by its properties (name of station, mac address, ip address etc.)."""
-    name_of_station = ''
-    MAC = ''
-    IP = ''
-    netmask = ''
-    gateway = ''
-    family = ''
+
+    def __init__(self):
+        self.name_of_station = ''
+        self.MAC = ''
+        self.IP = ''
+        self.netmask = ''
+        self.gateway = ''
+        self.family = ''
 
 
 class DCP:
