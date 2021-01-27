@@ -72,6 +72,7 @@ class DCP:
             iface_ip = config[1][1]
             if iface_ip == ip:
                 return iface_mac.replace('-', ':').lower(), iface_name
+        logging.error(f"Could not find network interface for ip {ip}")
 
     @staticmethod
     def ip_to_hex(ip_conf):
@@ -121,6 +122,7 @@ class DCP:
         self.__send_request(0xFF, 0xFF, 0)
         response = self.read_response()
         if len(response) == 0:
+            logging.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0]
 
@@ -143,6 +145,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
+            logging.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -168,6 +171,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
+            logging.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -184,6 +188,7 @@ class DCP:
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
         response = self.read_response()
         if len(response) == 0:
+            logging.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0].IP
 
@@ -200,6 +205,7 @@ class DCP:
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
         response = self.read_response()
         if len(response) == 0:
+            logging.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0].name_of_station
 
@@ -216,7 +222,12 @@ class DCP:
         self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         value = (4).to_bytes(2, 'big')
         self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value), value)
-        return self.read_response(set=True)
+        time.sleep(2)
+        response = self.read_response(set=True)
+        if len(response) == 0:
+            logging.info(f"Timeout: no answer from device with MAC {mac}")
+            raise DcpTimeoutError
+        return response
 
     def __send_request(self, opt, subopt, length, value=None):
         """
