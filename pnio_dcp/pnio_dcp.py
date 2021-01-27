@@ -243,7 +243,8 @@ class DCP:
             block_content += bytes([0x00])
         block = DCPBlockRequest(opt, subopt, length, block_content)
 
-        dcp = dcp_header(self.__frame, self.__service, self.__service_type, self.__xid, 0x0080, len(block), payload=block)
+        dcp = dcp_header(self.__frame, self.__service, self.__service_type, self.__xid, 0x0080, len(block),
+                         payload=block)
         eth = eth_header(mac_to_hex(self.__dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
         self.__s.send(bytes(eth))
 
