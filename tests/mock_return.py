@@ -32,6 +32,7 @@ class MockReturn:
                '40:ec:f8:04:bf:5e': MockDevice('sibasxx', '40:ec:f8:04:bf:5e', ['10.0.0.120', '255.255.240.0', '10.0.0.1'], random.choice([b'03', b'04', b'05']), "Sibas PN"),
                '40:ec:f8:03:b7:df': MockDevice('cp1604-11', '40:ec:f8:03:b7:df', ['10.0.0.20', '255.255.240.0', '10.0.0.1'], random.choice([b'04', b'05', b'06']), "CP16")}
     block = None
+    xid = 0x7010052
 
     def ip_to_hex(self, ip_conf):
         str_hex = ''
@@ -41,7 +42,8 @@ class MockReturn:
                 str_hex += hex(int(i))[2:].zfill(2)
         return bytes.fromhex(str_hex)
 
-    def identify_response(self, resp_type):
+    def identify_response(self, resp_type, xid=0x7010052):
+        self.xid = xid
 
         if resp_type == 'IDENTIFY_ALL':
             identified = []
@@ -124,6 +126,6 @@ class MockReturn:
         return self.compose_response()
 
     def compose_response(self):
-        dcp = pnio_dcp.dcp_header(self.frame_id, self.service_id, self.service_type, 0x7010052, 0x0000, len(self.block), payload=self.block)
+        dcp = pnio_dcp.dcp_header(self.frame_id, self.service_id, self.service_type, self.xid, 0x0000, len(self.block), payload=self.block)
         eth = pnio_dcp.eth_header(pnio_dcp.mac_to_hex(self.src), pnio_dcp.mac_to_hex(self.dst_custom), self.eth_type, payload=dcp)
         return [bytes(eth)]
