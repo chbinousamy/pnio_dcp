@@ -16,6 +16,9 @@ from .protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from .util import mac_to_hex, hex_to_mac, hex_to_ip
 
 
+logger = logging.getLogger(__name__)
+
+
 class Device:
     """A DCP device defined by its properties (name of station, mac address, ip address etc.)."""
     name_of_station = ''
@@ -72,7 +75,7 @@ class DCP:
             iface_ip = config[1][1]
             if iface_ip == ip:
                 return iface_mac.replace('-', ':').lower(), iface_name
-        logging.error(f"Could not find network interface for ip {ip}")
+        logger.error(f"Could not find network interface for ip {ip}")
 
     @staticmethod
     def ip_to_hex(ip_conf):
@@ -122,7 +125,7 @@ class DCP:
         self.__send_request(0xFF, 0xFF, 0)
         response = self.read_response()
         if len(response) == 0:
-            logging.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0]
 
@@ -145,7 +148,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
-            logging.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -171,7 +174,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
-            logging.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -188,7 +191,7 @@ class DCP:
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
         response = self.read_response()
         if len(response) == 0:
-            logging.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0].IP
 
@@ -205,7 +208,7 @@ class DCP:
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
         response = self.read_response()
         if len(response) == 0:
-            logging.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0].name_of_station
 
@@ -225,7 +228,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
-            logging.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.info(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -278,10 +281,10 @@ class DCP:
         block_code = payload[6]
         if block_code != 0:
             return_message = '{}, SET unsuccessful'.format(return_codes[block_code])
-            logging.warning(return_message)
+            logger.warning(return_message)
         else:
             return_message = return_codes[block_code]
-            logging.info(return_message)
+            logger.info(return_message)
         return return_message
 
     def read_response(self, to=10, set=False):
@@ -402,7 +405,7 @@ class DCP:
         if not (pro.service_type == dcp_header.RESPONSE):
             return
         if pro.xid != self.xid:
-            logging.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(pro.xid)} != {hex(self.xid)}")
+            logger.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(pro.xid)} != {hex(self.xid)}")
             return
         return pro
 
