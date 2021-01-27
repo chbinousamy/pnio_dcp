@@ -12,7 +12,7 @@ class TestDCPGetSet:
         for device_mac in self.mock.dst:
 
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('GET_IP', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('GET_IP', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
@@ -33,7 +33,7 @@ class TestDCPGetSet:
         for device_mac in self.mock.dst:
 
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('GET_NAME', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('GET_NAME', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
@@ -55,7 +55,7 @@ class TestDCPGetSet:
         for device_mac in self.mock.dst:
 
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
@@ -76,7 +76,7 @@ class TestDCPGetSet:
         for idx in range(len(self.mock.dst)):
 
             self.mock.dst_custom = self.mock.dst[idx]
-            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 

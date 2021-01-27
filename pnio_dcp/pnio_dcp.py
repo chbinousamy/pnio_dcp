@@ -25,26 +25,26 @@ class Device:
 
 class DCP:
     def __init__(self, ip):
-        self.devices = []
-        self.dst_mac = ''
+        self.__devices = []
+        self.__dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
 
         # the XID is the id of the current transaction and can be used to identify the responses to a request
-        self.xid = int(random.getrandbits(32))  # initialize it with a random value
+        self.__xid = int(random.getrandbits(32))  # initialize it with a random value
 
         # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
         # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
         # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
-        self.socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
+        self.__socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
 
-        self.s = conf.L2socket(iface=self.iface, filter=self.socket_filter)
-        self.frame = None
-        self.service = None
-        self.service_type = None
+        self.__s = conf.L2socket(iface=self.iface, filter=self.__socket_filter)
+        self.__frame = None
+        self.__service = None
+        self.__service_type = None
 
     def __reopen_socket(self):
-        self.s.close()
-        self.s = conf.L2socket(iface=self.iface, filter=self.socket_filter)
+        self.__s.close()
+        self.__s = conf.L2socket(iface=self.iface, filter=self.__socket_filter)
 
     @staticmethod
     def __get_nic(ip):
@@ -88,8 +88,8 @@ class DCP:
         and get information (name, ip) about them.
         :return: list with instances of class Device, an instance is created for each device found.
         """
-        self.dst_mac = '01:0e:cf:00:00:00'
-        self.frame, self.service, self.service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
+        self.__dst_mac = '01:0e:cf:00:00:00'
+        self.__frame, self.__service, self.__service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
         return self.__read_response()
 
@@ -99,8 +99,8 @@ class DCP:
         :param mac: MAC-address of the device to identify
         :return: instance of class Device
         """
-        self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
+        self.__dst_mac = mac
+        self.__frame, self.__service, self.__service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
         response = self.__read_response()
         if len(response) == 0:
@@ -114,8 +114,8 @@ class DCP:
         :param ip_conf: list of strings in order ['ip address', 'subnet mask', 'router']
         :return: return message, Code 0 if no error occurred, 1-6 otherwise
         """
-        self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        self.__dst_mac = mac
+        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         hex_addr = self.__ip_to_hex(ip_conf)
         block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2,
@@ -137,8 +137,8 @@ class DCP:
         if not re.match(valid_pattern, name):
             raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
-        self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        self.__dst_mac = mac
+        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name) + 2,
                             block_qualifier + bytes(name, encoding='ascii'))
@@ -154,8 +154,8 @@ class DCP:
         :param mac: MAC-address of target device
         :return: IP-address (str)
         """
-        self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
+        self.__dst_mac = mac
+        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
         response = self.__read_response()
         if len(response) == 0:
@@ -168,8 +168,8 @@ class DCP:
         :param mac: MAC-address of target device
         :return: name of station (decoded str)
         """
-        self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
+        self.__dst_mac = mac
+        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
         response = self.__read_response()
         if len(response) == 0:
@@ -182,8 +182,8 @@ class DCP:
         :param mac: MAC-address of target device
         :return: return message, Code 0 if no error occurred, 1-6 otherwise
         '''
-        self.dst_mac = mac
-        self.frame, self.service, self.service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        self.__dst_mac = mac
+        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         value = (4).to_bytes(2, 'big')
         self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value), value)
         return self.__read_response(set=True)
@@ -202,16 +202,16 @@ class DCP:
         # This avoids processing outdated responses to other DCP instances with the same mac address
         # (most likely not a particularly common occurrence)
         self.__reopen_socket()
-        self.xid += 1
+        self.__xid += 1
 
         block_content = value if value else bytes()
         if len(block_content) % 2:  # if the block content has odd length, add one byte padding at the end
             block_content += bytes([0x00])
         block = DCPBlockRequest(opt, subopt, length, block_content)
 
-        dcp = dcp_header(self.frame, self.service, self.service_type, self.xid, 0x0080, len(block), payload=block)
-        eth = eth_header(mac_to_hex(self.dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
-        self.s.send(bytes(eth))
+        dcp = dcp_header(self.__frame, self.__service, self.__service_type, self.__xid, 0x0080, len(block), payload=block)
+        eth = eth_header(mac_to_hex(self.__dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
+        self.__s.send(bytes(eth))
 
     @staticmethod
     def __response_set(payload):
@@ -269,7 +269,7 @@ class DCP:
         return found
 
     def __receive_packet(self):
-        data = self.s.recv()
+        data = self.__s.recv()
         if data is None:
             return
         data = bytes(data)
@@ -313,8 +313,8 @@ class DCP:
         pro = dcp_header(eth.payload)
         if not (pro.service_type == dcp_header.RESPONSE):
             return
-        if pro.xid != self.xid:
-            logging.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(pro.xid)} != {hex(self.xid)}")
+        if pro.xid != self.__xid:
+            logging.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(pro.xid)} != {hex(self.__xid)}")
             return
         return pro
 
