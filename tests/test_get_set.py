@@ -1,7 +1,7 @@
 import pytest
 from socket import timeout
 from mock_return import MockReturn
-from cw_dcp import DcpTimeoutError
+from pnio_dcp import DcpTimeoutError
 
 
 class TestDCPGetSet:
