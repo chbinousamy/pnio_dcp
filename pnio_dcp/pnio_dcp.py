@@ -63,11 +63,11 @@ class DCP:
         """
         Get the mac address and name of the network interface corresponding to the given IP address by iterating over
         all available network interfaces and comparing the IP addresses.
-        If no interface with the given IP address is found, None is returned.
+        If no interface with the given IP address is found, a ValueError is raised.
         :param ip: The IP address to select the network interface with.
         :type ip: string
         :return: MAC-address, Interface name [or None if no interface with the given IP address is found]
-        :rtype: Optional[Tuple[string, string]]
+        :rtype: Tuple[string, string]
         """
         addrs = psutil.net_if_addrs()
         for iface_name, config in addrs.items():
@@ -75,7 +75,7 @@ class DCP:
             iface_ip = config[1][1]
             if iface_ip == ip:
                 return iface_mac.replace('-', ':').lower(), iface_name
-        logger.error(f"Could not find network interface for ip {ip}")
+        raise ValueError(f"Could not find a network interface for ip {ip}")
 
     @staticmethod
     def ip_to_hex(ip_conf):
