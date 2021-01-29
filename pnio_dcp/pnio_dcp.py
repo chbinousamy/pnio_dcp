@@ -125,7 +125,7 @@ class DCP:
         self.__send_request(0xFF, 0xFF, 0)
         response = self.read_response()
         if len(response) == 0:
-            logger.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0]
 
@@ -148,7 +148,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
-            logger.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -174,7 +174,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
-            logger.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -191,7 +191,7 @@ class DCP:
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
         response = self.read_response()
         if len(response) == 0:
-            logger.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0].IP
 
@@ -208,7 +208,7 @@ class DCP:
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
         response = self.read_response()
         if len(response) == 0:
-            logger.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response[0].name_of_station
 
@@ -228,7 +228,7 @@ class DCP:
         time.sleep(2)
         response = self.read_response(set=True)
         if len(response) == 0:
-            logger.info(f"Timeout: no answer from device with MAC {mac}")
+            logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
         return response
 
@@ -284,7 +284,7 @@ class DCP:
             logger.warning(return_message)
         else:
             return_message = return_codes[block_code]
-            logger.info(return_message)
+            logger.debug(return_message)
         return return_message
 
     def read_response(self, to=10, set=False):
