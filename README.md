@@ -31,6 +31,9 @@ dcp = pnio_dcp.DCP(ip)
 ```
 where the given IP address is the IP of the host machine in the network to use for DCP communication.
 
+All currently available requests are described in the following.  
+All requests except `identify_all` will raise a `pnio_dcp.DcpTimeoutError` if the requested device does not answer within the allowed time frame (currently 10s).
+
 ### Identify Request
 Identify requests can be used to identify DCP devices in the network. 
 The identified devices are always returned as pnio_dcp.Device objects.
