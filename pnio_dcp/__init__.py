@@ -9,5 +9,5 @@ except PackageNotFoundError:
     except LookupError:  # otherwise the version cannot be determined and is set to unknown
         __version__ = "unknown"
 
-from .pnio_dcp import DCP, Device
+from .pnio_dcp import DCP, Device, ResponseCode
 from .error import DcpError, DcpTimeoutError
