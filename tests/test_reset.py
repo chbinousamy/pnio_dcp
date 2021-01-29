@@ -16,4 +16,4 @@ class TestDCPReset:
             socket().recv.side_effect = socket().recv.return_value
 
             ret_msg = instance_dcp.reset_to_factory(device_mac)
-            assert int(ret_msg[6]) == int(self.mock.devices[device_mac].err_code)
+            assert ret_msg.code == int(self.mock.devices[device_mac].err_code)

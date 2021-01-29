@@ -60,7 +60,7 @@ class TestDCPGetSet:
             socket().recv.side_effect = socket().recv.return_value
 
             ret_msg = instance_dcp.set_ip_address(device_mac, new_ip)
-            assert int(ret_msg[6]) == int(self.mock.devices[device_mac].err_code)
+            assert ret_msg.code == int(self.mock.devices[device_mac].err_code)
 
     def test_set_ip_no_response_raises_timeout(self, instance_dcp):
         instance_dcp, socket = instance_dcp
@@ -82,7 +82,7 @@ class TestDCPGetSet:
 
             new_name = 'name-{}'.format(idx)
             ret_msg = instance_dcp.set_name_of_station(self.mock.dst[idx], new_name)
-            assert int(ret_msg[6]) == int(self.mock.devices[self.mock.dst[idx]].err_code)
+            assert ret_msg.code == int(self.mock.devices[self.mock.dst[idx]].err_code)
 
     def test_set_name_no_response_raises_timeout(self, instance_dcp):
         instance_dcp, socket = instance_dcp
