@@ -31,7 +31,7 @@ class TestInvalidInput:
                       ['10.0.0.30', '255.255.240.0', '-10.0.0.1']]
         test_device_mac = random.choice(self.mock.dst)
         self.mock.dst_custom = test_device_mac
-        socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp.xid + 1)
+        socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp._DCP__xid + 1)
         socket().recv.return_value.append(TimeoutError)
         socket().recv.side_effect = socket().recv.return_value
         for ip_conf in invalid_ip:
@@ -47,7 +47,7 @@ class TestInvalidInput:
         test_device_mac = random.choice(self.mock.dst)
 
         self.mock.dst_custom = test_device_mac
-        socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp.xid + 1)
+        socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp._DCP__xid + 1)
         socket().recv.return_value.append(TimeoutError)
         socket().recv.side_effect = socket().recv.return_value
 

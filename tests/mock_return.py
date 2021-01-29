@@ -1,6 +1,7 @@
 import binascii
 import random
-import pnio_dcp
+import pnio_dcp.protocol
+import pnio_dcp.util
 
 
 class MockDevice:
@@ -25,7 +26,7 @@ class MockReturn:
     eth_type = 0x8892
     frame_id = None
     service_id = None
-    service_type = pnio_dcp.dcp_header.RESPONSE
+    service_type = pnio_dcp.protocol.dcp_header.RESPONSE
     devices = {'00:0c:29:66:47:a5': MockDevice('win-4faufud472v', '00:0c:29:66:47:a5', ['10.0.0.251', '255.255.240.0', '10.0.0.1'], b'00', "Win"),
                '00:0e:8c:e5:3c:58': MockDevice('spsw-11', '00:0e:8c:e5:3c:58', ['10.0.0.30', '255.255.240.0', '10.0.0.1'], random.choice([b'01', b'02', b'03']), "SPSW"),
                '00:e0:7c:c8:72:58': MockDevice('cwl-r90g66zd', '00:e0:7c:c8:72:58', ['10.0.4.53', '255.255.240.0', '10.0.0.1'], b'00', "CWL"),
@@ -65,7 +66,7 @@ class MockReturn:
 
     def generate_identify(self):
         self.frame_id = 0xfeff
-        self.service_id = pnio_dcp.dcp_header.IDENTIFY
+        self.service_id = pnio_dcp.protocol.dcp_header.IDENTIFY
         if len(self.devices[self.dst_custom].NameOfStation) % 2 == 1:
             name = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation, encoding='ascii') + bytes([0x00])
             len_name = bytes.fromhex(format(len(name) - 1, '04x'))
@@ -92,7 +93,7 @@ class MockReturn:
 
     def generate_get(self, param):
         self.frame_id = 0xfefd
-        self.service_id = pnio_dcp.dcp_header.GET
+        self.service_id = pnio_dcp.protocol.dcp_header.GET
         content_tail = bytes([0x05, 0x04, 0x0003, 0x000001])
 
         if param == 'IP':
@@ -106,26 +107,26 @@ class MockReturn:
             else:
                 content = bytes([0x00, 0x00]) + bytes(self.devices[self.dst_custom].NameOfStation, encoding='ascii')
         block_content = content + content_tail
-        self.block = pnio_dcp.DCPBlockRequest(opt, subopt, len(content) + (1 if len(content) % 2 == 1 else 0), block_content)
+        self.block = pnio_dcp.protocol.DCPBlockRequest(opt, subopt, len(content) + (1 if len(content) % 2 == 1 else 0), block_content)
         return self.compose_response()
 
     def generate_set(self):
         self.frame_id = 0xfefd
-        self.service_id = pnio_dcp.dcp_header.SET
+        self.service_id = pnio_dcp.protocol.dcp_header.SET
         block_content = bytes([0x02, 0x02]) + binascii.unhexlify(self.devices[self.dst_custom].err_code)
-        self.block = pnio_dcp.DCPBlockRequest(0x05, 0x04, len(block_content), block_content)
+        self.block = pnio_dcp.protocol.DCPBlockRequest(0x05, 0x04, len(block_content), block_content)
         return self.compose_response()
 
     def generate_reset(self):
         self.frame_id = 0xfefd
-        self.service_id = pnio_dcp.dcp_header.SET
+        self.service_id = pnio_dcp.protocol.dcp_header.SET
         opt, subopt = 0x05, 0x04
         req_opt, req_subopt = 0x05, 0x06
         block_content = bytes([req_opt, req_subopt]) + binascii.unhexlify(self.devices[self.dst_custom].err_code)
-        self.block = pnio_dcp.DCPBlockRequest(opt, subopt, len(block_content), block_content)
+        self.block = pnio_dcp.protocol.DCPBlockRequest(opt, subopt, len(block_content), block_content)
         return self.compose_response()
 
     def compose_response(self):
-        dcp = pnio_dcp.dcp_header(self.frame_id, self.service_id, self.service_type, self.xid, 0x0000, len(self.block), payload=self.block)
-        eth = pnio_dcp.eth_header(pnio_dcp.mac_to_hex(self.src), pnio_dcp.mac_to_hex(self.dst_custom), self.eth_type, payload=dcp)
+        dcp = pnio_dcp.protocol.dcp_header(self.frame_id, self.service_id, self.service_type, self.xid, 0x0000, len(self.block), payload=self.block)
+        eth = pnio_dcp.protocol.eth_header(pnio_dcp.util.mac_to_hex(self.src), pnio_dcp.util.mac_to_hex(self.dst_custom), self.eth_type, payload=dcp)
         return [bytes(eth)]

@@ -12,7 +12,7 @@ class TestDCPGetSet:
         for device_mac in self.mock.dst:
 
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('GET_IP', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('GET_IP', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
@@ -33,7 +33,7 @@ class TestDCPGetSet:
         for device_mac in self.mock.dst:
 
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('GET_NAME', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('GET_NAME', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
@@ -55,12 +55,12 @@ class TestDCPGetSet:
         for device_mac in self.mock.dst:
 
             self.mock.dst_custom = device_mac
-            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
             ret_msg = instance_dcp.set_ip_address(device_mac, new_ip)
-            assert int(ret_msg[6]) == int(self.mock.devices[device_mac].err_code)
+            assert ret_msg.code == int(self.mock.devices[device_mac].err_code)
 
     def test_set_ip_no_response_raises_timeout(self, instance_dcp):
         instance_dcp, socket = instance_dcp
@@ -76,13 +76,13 @@ class TestDCPGetSet:
         for idx in range(len(self.mock.dst)):
 
             self.mock.dst_custom = self.mock.dst[idx]
-            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp.xid + 1)
+            socket().recv.return_value = self.mock.identify_response('SET', xid=instance_dcp._DCP__xid + 1)
             socket().recv.return_value.append(TimeoutError)
             socket().recv.side_effect = socket().recv.return_value
 
             new_name = 'name-{}'.format(idx)
             ret_msg = instance_dcp.set_name_of_station(self.mock.dst[idx], new_name)
-            assert int(ret_msg[6]) == int(self.mock.devices[self.mock.dst[idx]].err_code)
+            assert ret_msg.code == int(self.mock.devices[self.mock.dst[idx]].err_code)
 
     def test_set_name_no_response_raises_timeout(self, instance_dcp):
         instance_dcp, socket = instance_dcp

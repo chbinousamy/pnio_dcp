@@ -9,7 +9,5 @@ except PackageNotFoundError:
     except LookupError:  # otherwise the version cannot be determined and is set to unknown
         __version__ = "unknown"
 
-from .protocol import eth_header, dcp_header, DCPBlockRequest, DCPBlock
-from .util import mac_to_hex, hex_to_mac, hex_to_ip
-from .pnio_dcp import DCP, Device
+from .pnio_dcp import DCP, Device, ResponseCode
 from .error import DcpError, DcpTimeoutError
