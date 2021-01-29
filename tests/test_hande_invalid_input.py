@@ -1,10 +1,27 @@
-import pytest
-from mock_return import MockReturn
 import random
+import pytest
+from unittest.mock import patch
+
+from mock_return import MockReturn
+import pnio_dcp
 
 
 class TestInvalidInput:
     mock = MockReturn()
+
+    @patch('pnio_dcp.pnio_dcp.psutil')
+    def test_init_with_invalid_ip(self, psutil):
+        mock_return = MockReturn()
+        psutil.net_if_addrs.return_value = mock_return.testnetz
+
+        invalid_ips = ["0.0.0.0",
+                       "not an ip",
+                       None,
+                       5]
+
+        for ip in invalid_ips:
+            with pytest.raises(ValueError):
+                pnio_dcp.DCP(ip)
 
     def test_provide_invalid_ip(self, instance_dcp):
         instance_dcp, socket = instance_dcp
