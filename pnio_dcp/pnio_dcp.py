@@ -32,6 +32,11 @@ class Device:
 
 
 class DCP:
+
+    PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
+    PROFINET_ETHERNET_TYPE = 0x8892
+    RESPONSE_DELAY = 0x0080
+
     def __init__(self, ip):
         """
         Create a new instance, use the given ip to select the network interface.
@@ -43,6 +48,7 @@ class DCP:
         self.src_mac, self.iface = self.__get_nic(ip)
 
         self.default_timeout = 7  # default timeout for requests (in seconds)
+        self.waiting_time = 2  # time to wait between sending a set request and receiving the response
 
         # the XID is the id of the current transaction and can be used to identify the responses to a request
         self.__xid = int(random.getrandbits(32))  # initialize it with a random value
@@ -114,7 +120,7 @@ class DCP:
         :return: A list containing all devices found.
         :rtype: List[Device]
         """
-        self.__dst_mac = '01:0e:cf:00:00:00'
+        self.__dst_mac = self.PROFINET_MULTICAST_MAC_IDENTIFY
         self.__frame, self.__service, self.__service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
         return self.__read_response(timeout=timeout)
@@ -153,7 +159,7 @@ class DCP:
         block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2,
                             block_qualifier + hex_addr)
-        time.sleep(2)
+        time.sleep(self.waiting_time)
 
         response = self.__read_response(set=True)
 
@@ -185,7 +191,7 @@ class DCP:
         block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name) + 2,
                             block_qualifier + bytes(name, encoding='ascii'))
-        time.sleep(2)
+        time.sleep(self.waiting_time)
 
         response = self.__read_response(set=True)
 
@@ -281,9 +287,9 @@ class DCP:
             block_content += bytes([0x00])
         block = DCPBlockRequest(opt, subopt, length, block_content)
 
-        dcp = dcp_header(self.__frame, self.__service, self.__service_type, self.__xid, 0x0080, len(block),
+        dcp = dcp_header(self.__frame, self.__service, self.__service_type, self.__xid, self.RESPONSE_DELAY, len(block),
                          payload=block)
-        eth = eth_header(mac_to_hex(self.__dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
+        eth = eth_header(mac_to_hex(self.__dst_mac), mac_to_hex(self.src_mac), self.PROFINET_ETHERNET_TYPE, payload=dcp)
         self.__s.send(bytes(eth))
 
     def __read_response(self, timeout=None, set=False):
