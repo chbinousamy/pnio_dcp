@@ -33,6 +33,10 @@ class Device:
 
 class DCP:
 
+    DCP_FRAME_ID_GET_SET = 0xfefd
+    DCP_FRAME_ID_IDENTIFY_REQUEST = 0xfefe
+    DCP_FRAME_ID_RESET = 0xfeff
+
     PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
     PROFINET_ETHERNET_TYPE = 0x8892
     RESPONSE_DELAY = 0x0080
@@ -127,7 +131,7 @@ class DCP:
         :rtype: Device
         """
         self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
+        self.__frame, self.__service, self.__service_type = self.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
         response = self.__read_response()
         if len(response) == 0:
@@ -147,7 +151,7 @@ class DCP:
         :rtype: ResponseCode
         """
         self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        self.__frame, self.__service, self.__service_type = self.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.SET, dcp_header.REQUEST
         hex_addr = self.__ip_to_hex(ip_conf)
         block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2,
@@ -180,7 +184,7 @@ class DCP:
             raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
         self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        self.__frame, self.__service, self.__service_type = self.DCP_FRAME_ID_GET_SET, dcp_header.SET, dcp_header.REQUEST
         block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name) + 2,
                             block_qualifier + bytes(name, encoding='ascii'))
@@ -205,7 +209,7 @@ class DCP:
         :rtype: string
         """
         self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
+        self.__frame, self.__service, self.__service_type = self.DCP_FRAME_ID_GET_SET, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
         response = self.__read_response()
         if len(response) == 0:
@@ -222,7 +226,7 @@ class DCP:
         :rtype: string
         """
         self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
+        self.__frame, self.__service, self.__service_type = self.DCP_FRAME_ID_GET_SET, dcp_header.GET, dcp_header.REQUEST
         self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
         response = self.__read_response()
         if len(response) == 0:
@@ -241,7 +245,7 @@ class DCP:
         :rtype: ResponseCode
         """
         self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
+        self.__frame, self.__service, self.__service_type = self.DCP_FRAME_ID_RESET, dcp_header.SET, dcp_header.REQUEST
         value = (4).to_bytes(2, 'big')
         self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value), value)
 
