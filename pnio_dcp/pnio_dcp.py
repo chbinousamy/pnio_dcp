@@ -236,7 +236,7 @@ class DCP:
         :rtype: ResponseCode
         """
         option, suboption = DCPBlock.RESET_TO_FACTORY
-        value = (4).to_bytes(2, 'big')
+        value = bytes(protocol.DCP_QUALIFIER_RESET_COMMUNICATION)
         self.__send_request(mac, protocol.DCP_FRAME_ID_RESET, dcp_header.SET, option, suboption, value)
 
         response = self.__read_response(set=True)
