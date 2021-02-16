@@ -11,6 +11,7 @@ import time
 import psutil
 from scapy.all import conf
 
+import pnio_dcp.protocol as protocol
 from .error import DcpTimeoutError
 from .protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from .util import mac_to_hex, hex_to_mac, hex_to_ip
@@ -32,14 +33,6 @@ class Device:
 
 
 class DCP:
-
-    DCP_FRAME_ID_GET_SET = 0xfefd
-    DCP_FRAME_ID_IDENTIFY_REQUEST = 0xfefe
-    DCP_FRAME_ID_RESET = 0xfeff
-
-    PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
-    PROFINET_ETHERNET_TYPE = 0x8892
-    RESPONSE_DELAY = 0x0080
 
     def __init__(self, ip):
         """
@@ -117,9 +110,9 @@ class DCP:
         :return: A list containing all devices found.
         :rtype: List[Device]
         """
-        dst_mac = self.PROFINET_MULTICAST_MAC_IDENTIFY
+        dst_mac = protocol.PROFINET_MULTICAST_MAC_IDENTIFY
         option, suboption = DCPBlock.ALL
-        self.__send_request(dst_mac, self.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.IDENTIFY, option, suboption)
+        self.__send_request(dst_mac, protocol.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.IDENTIFY, option, suboption)
         return self.__read_response(timeout=timeout)
 
     def identify(self, mac):
@@ -131,7 +124,7 @@ class DCP:
         :rtype: Device
         """
         option, suboption = DCPBlock.ALL
-        self.__send_request(mac, self.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.IDENTIFY, option, suboption)
+        self.__send_request(mac, protocol.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.IDENTIFY, option, suboption)
 
         response = self.__read_response()
         if len(response) == 0:
@@ -155,7 +148,7 @@ class DCP:
         value = block_qualifier + hex_addr
 
         option, suboption = DCPBlock.IP_ADDRESS
-        self.__send_request(mac, self.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
 
         time.sleep(self.waiting_time)
         response = self.__read_response(set=True)
@@ -187,7 +180,7 @@ class DCP:
         value = block_qualifier + bytes(name, encoding='ascii')
 
         option, suboption = DCPBlock.NAME_OF_STATION
-        self.__send_request(mac, self.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
 
         time.sleep(self.waiting_time)
         response = self.__read_response(set=True)
@@ -209,7 +202,7 @@ class DCP:
         :rtype: string
         """
         option, suboption = DCPBlock.IP_ADDRESS
-        self.__send_request(mac, self.DCP_FRAME_ID_GET_SET, dcp_header.GET, option, suboption)
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.GET, option, suboption)
 
         response = self.__read_response()
         if len(response) == 0:
@@ -226,7 +219,7 @@ class DCP:
         :rtype: string
         """
         option, suboption = DCPBlock.NAME_OF_STATION
-        self.__send_request(mac, self.DCP_FRAME_ID_GET_SET, dcp_header.GET, option, suboption)
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.GET, option, suboption)
 
         response = self.__read_response()
         if len(response) == 0:
@@ -246,7 +239,7 @@ class DCP:
         """
         option, suboption = DCPBlock.RESET_TO_FACTORY
         value = (4).to_bytes(2, 'big')
-        self.__send_request(mac, self.DCP_FRAME_ID_RESET, dcp_header.SET, option, suboption, value)
+        self.__send_request(mac, protocol.DCP_FRAME_ID_RESET, dcp_header.SET, option, suboption, value)
 
         response = self.__read_response(set=True)
 
@@ -279,10 +272,11 @@ class DCP:
 
         # Create DCP frame
         service_type = dcp_header.REQUEST
-        dcp = dcp_header(frame_id, service, service_type, self.__xid, self.RESPONSE_DELAY, len(block), payload=block)
+        dcp = dcp_header(frame_id, service, service_type, self.__xid, protocol.RESPONSE_DELAY, len(block),
+                         payload=block)
 
         # Create ethernet frame
-        eth = eth_header(mac_to_hex(dst_mac), mac_to_hex(self.src_mac), self.PROFINET_ETHERNET_TYPE, payload=dcp)
+        eth = eth_header(mac_to_hex(dst_mac), mac_to_hex(self.src_mac), dcp_header.ETHER_TYPE, payload=dcp)
 
         # Send the request
         self.__s.send(bytes(eth))

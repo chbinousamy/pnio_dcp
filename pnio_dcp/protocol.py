@@ -4,6 +4,18 @@ All Rights Reserved.
 """
 from .util import create_bytestr, hex_to_mac
 
+
+# Constants for the different DCP frame IDs
+DCP_FRAME_ID_GET_SET = 0xfefd
+DCP_FRAME_ID_IDENTIFY_REQUEST = 0xfefe
+DCP_FRAME_ID_RESET = 0xfeff
+
+# the multicast address for identify all requests
+PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
+# the response delay value for DCP requests
+RESPONSE_DELAY = 0x0080
+
+
 eth_header = create_bytestr("eth_header", (
     ("destination",  ("6s", hex_to_mac)),
     ("source",       ("6s", hex_to_mac)),
