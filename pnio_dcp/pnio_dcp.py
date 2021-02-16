@@ -44,7 +44,7 @@ class DCP:
         :type ip: string
         """
         self.__dst_mac = ''
-        self.src_mac, self.iface = self.__get_nic(ip)
+        self.src_mac, network_interface = self.__get_nic(ip)
 
         self.default_timeout = 7  # default timeout for requests (in seconds)
         self.waiting_time = 2  # time to wait between sending a set request and receiving the response
@@ -55,17 +55,11 @@ class DCP:
         # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
         # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
         # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
-        self.__socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
-
-        self.__s = conf.L2socket(iface=self.iface, filter=self.__socket_filter)
+        socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
+        self.__s = conf.L2socket(iface=network_interface, filter=socket_filter)
         self.__frame = None
         self.__service = None
         self.__service_type = None
-
-    def __reopen_socket(self):
-        """Close and reopen the L2 socket used to send and receive DCP packets."""
-        self.__s.close()
-        self.__s = conf.L2socket(iface=self.iface, filter=self.__socket_filter)
 
     @staticmethod
     def __get_nic(ip):
@@ -273,12 +267,6 @@ class DCP:
         :param value: The DCP payload data to send, only used in 'set' functions
         :type value: bytes
         """
-        # Reopen the socket for each request. This avoids receiving outdated responses to another DCP instance in cases
-        # where two or more instances are running on the same machine (i.e. with the same mac address).
-        # Note: this does not help if the two instances make requests at the same time
-        # This avoids processing outdated responses to other DCP instances with the same mac address
-        # (most likely not a particularly common occurrence)
-        self.__reopen_socket()
         self.__xid += 1  # increment the XID wih each request (used to identify a transaction)
 
         block_content = value if value else bytes()
