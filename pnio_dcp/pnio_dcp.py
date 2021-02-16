@@ -43,7 +43,6 @@ class DCP:
         :param ip: The ip address used to select the network interface.
         :type ip: string
         """
-        self.__devices = []
         self.__dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
 
