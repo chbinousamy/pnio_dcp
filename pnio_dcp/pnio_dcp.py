@@ -42,6 +42,8 @@ class DCP:
         self.__dst_mac = ''
         self.src_mac, self.iface = self.__get_nic(ip)
 
+        self.default_timeout = 7  # default timeout for requests (in seconds)
+
         # the XID is the id of the current transaction and can be used to identify the responses to a request
         self.__xid = int(random.getrandbits(32))  # initialize it with a random value
 
@@ -103,16 +105,19 @@ class DCP:
 
         return bytes.fromhex(str_hex)
 
-    def identify_all(self):
+    def identify_all(self, timeout=None):
         """
         Send multicast request to identify ALL devices in current network interface and get information about them.
+        :param timeout: Optional timeout in seconds. Since it is unknown how many devices will respond to the request,
+        responses are received for the full duration of the timeout. The default is defined in self.default_timeout.
+        :type timeout: integer
         :return: A list containing all devices found.
         :rtype: List[Device]
         """
         self.__dst_mac = '01:0e:cf:00:00:00'
         self.__frame, self.__service, self.__service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
         self.__send_request(0xFF, 0xFF, 0)
-        return self.__read_response()
+        return self.__read_response(timeout=timeout)
 
     def identify(self, mac):
         """
@@ -281,7 +286,7 @@ class DCP:
         eth = eth_header(mac_to_hex(self.__dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
         self.__s.send(bytes(eth))
 
-    def __read_response(self, to=10, set=False):
+    def __read_response(self, timeout=None, set=False):
         """
         Receive packets and parse the response:
         - receive packets on the L2 socket addressed to the specified host mac address
@@ -290,16 +295,17 @@ class DCP:
         - if the response is a device, append it to the list of found devices and continue with the next packet
         - if the response if a int (return code to set request) return it immediately
         - repeat this until a int response is received or the timeout occurs.
-        :param to: Timeout in seconds
-        :type to: integer
+        :param timeout: Timeout in seconds
+        :type timeout: integer
         :param set: Whether this function was called inside a set-function. True enables error detection. Default: False
         :type set: boolean
         :return: If set: the ResponseCode, otherwise: list of devices (might be empty if no device was found)
         :rtype: Union[List[Device], ResponseCode]
         """
         found = []
+        timeout = self.default_timeout if timeout is None else timeout
         try:
-            timed_out = time.time() + to
+            timed_out = time.time() + timeout
             while time.time() < timed_out:
                 try:
                     data = self.__receive_packet()
