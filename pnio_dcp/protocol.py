@@ -14,6 +14,8 @@ DCP_FRAME_ID_RESET = 0xfeff
 PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
 # the response delay value for DCP requests
 RESPONSE_DELAY = 0x0080
+# DCP block qualifier to indicate that a value should be stored permanently
+DCP_QUALIFIER_STORE_PERMANENT = 0x0001
 
 
 eth_header = create_bytestr("eth_header", (

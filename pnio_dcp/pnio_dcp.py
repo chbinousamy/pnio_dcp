@@ -144,8 +144,7 @@ class DCP:
         :rtype: ResponseCode
         """
         hex_addr = self.__ip_to_hex(ip_conf)
-        block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
-        value = block_qualifier + hex_addr
+        value = bytes(protocol.DCP_QUALIFIER_STORE_PERMANENT) + hex_addr
 
         option, suboption = DCPBlock.IP_ADDRESS
         self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
@@ -176,8 +175,7 @@ class DCP:
         if not re.match(valid_pattern, name):
             raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
-        block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)' TODO: magic number
-        value = block_qualifier + bytes(name, encoding='ascii')
+        value = bytes(protocol.DCP_QUALIFIER_STORE_PERMANENT) + bytes(name, encoding='ascii')
 
         option, suboption = DCPBlock.NAME_OF_STATION
         self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
