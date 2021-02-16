@@ -370,28 +370,29 @@ class DCP:
         # dcp_header object
         pro = self.__prove_for_validity(eth)
 
-        if pro:  # if this is a valid DCP response
-            # parse the DCP blocks in the payload
-            blocks = pro.payload
-
-            # If called inside a set request and the option of the response is 5 ('Control'):
-            # extract and return the return code (as int)
-            if set and blocks[0] == 5:
-                return int(blocks[6])
-
-            # Otherwise, extract a device from the DCP payload
-            length = pro.len
-            device = Device()
-            device.MAC = hex_to_mac(eth.source)
-            # Process each DCP data block in the payload and modify the attributes of the device accordingly
-            while length > 6:
-                device, block_len = self.__process_block(blocks, device)
-                blocks = blocks[block_len + 4:]  # advance to the start of the next block
-                length -= 4 + block_len
-
-            return device
-        else:  # return None for invalid packets
+        # return None immediately for invalid responses
+        if not pro:
             return
+
+        # parse the DCP blocks in the payload
+        blocks = pro.payload
+
+        # If called inside a set request and the option of the response is 5 ('Control'):
+        # extract and return the return code (as int)
+        if set and blocks[0] == 5:
+            return int(blocks[6])
+
+        # Otherwise, extract a device from the DCP payload
+        length = pro.len
+        device = Device()
+        device.MAC = hex_to_mac(eth.source)
+        # Process each DCP data block in the payload and modify the attributes of the device accordingly
+        while length > 6:
+            device, block_len = self.__process_block(blocks, device)
+            blocks = blocks[block_len + 4:]  # advance to the start of the next block
+            length -= 4 + block_len
+
+        return device
 
     def __prove_for_validity(self, eth):
         """
