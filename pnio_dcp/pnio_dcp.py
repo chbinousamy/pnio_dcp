@@ -267,10 +267,11 @@ class DCP:
         if length % 2:  # if the block content has odd length, add one byte padding at the end
             block_content += bytes([0x00])
         block = DCPBlockRequest(option, suboption, length, block_content)
+        block_length = 2 if service == dcp_header.GET else len(block)
 
         # Create DCP frame
         service_type = dcp_header.REQUEST
-        dcp = dcp_header(frame_id, service, service_type, self.__xid, protocol.RESPONSE_DELAY, len(block),
+        dcp = dcp_header(frame_id, service, service_type, self.__xid, protocol.RESPONSE_DELAY, block_length,
                          payload=block)
 
         # Create ethernet frame
