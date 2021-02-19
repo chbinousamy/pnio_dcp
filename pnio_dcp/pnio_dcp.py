@@ -20,6 +20,17 @@ from .util import mac_to_hex, hex_to_mac, hex_to_ip
 logger = logging.getLogger(__name__)
 
 
+class L2Socket:
+    def __init__(self, iface=None, filter=None):
+        self.__s = conf.L2socket(iface=iface, filter=filter)
+
+    def send(self, data):
+        self.__s.send(data)
+
+    def recv(self):
+        return self.__s.recv()
+
+
 class Device:
     """A DCP device defined by its properties (name of station, mac address, ip address etc.)."""
 
@@ -53,7 +64,7 @@ class DCP:
         # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
         # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
         socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
-        self.__s = conf.L2socket(iface=network_interface, filter=socket_filter)
+        self.__s = L2socket(iface=network_interface, filter=socket_filter)
         self.__frame = None
         self.__service = None
         self.__service_type = None
