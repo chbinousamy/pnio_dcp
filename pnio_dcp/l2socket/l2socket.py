@@ -1,4 +1,4 @@
-from pnio_dcp.socket.winpcap import WinPcap, bpf_program, pcap_pkthdr
+from pnio_dcp.l2socket.winpcap import WinPcap, bpf_program, pcap_pkthdr
 import ctypes
 from scapy.all import conf
 
