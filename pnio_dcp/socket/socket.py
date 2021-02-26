@@ -1,5 +1,6 @@
 from pnio_dcp.socket.winpcap import WinPcap, bpf_program, pcap_pkthdr
 import ctypes
+from scapy.all import conf
 
 
 class PcapWrapper:
@@ -54,3 +55,14 @@ class L2pcapSocket:
 
     def close(self):
         self.pcap.close()
+
+
+class L2ScapySocket:
+    def __init__(self, iface=None, filter=None):
+        self.__s = conf.L2socket(iface=iface, filter=filter)
+
+    def send(self, data):
+        self.__s.send(data)
+
+    def recv(self):
+        return self.__s.recv()
