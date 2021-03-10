@@ -13,6 +13,7 @@ bpf_u_int32 = ctypes.c_uint32
 pcap_t = ctypes.c_void_p
 u_char = ctypes.c_ubyte
 c_string = ctypes.c_char_p
+null_pointer = ctypes.POINTER(ctypes.c_int)()
 
 # Structures for the structs used as in- or output types of the functions imported from the pcap DLL
 # The this application, necessary structures are: bpf_program with bpf_insn, and pcap_pkthdr with timeval
@@ -39,6 +40,39 @@ class pcap_pkthdr(ctypes.Structure):
     _fields_ = [('ts', timeval),
                 ('caplen', bpf_u_int32),
                 ('len', bpf_u_int32)]
+
+
+class sockaddr(ctypes.Structure):
+    _fields_ = [("sa_family", ctypes.c_ushort),
+                ("sa_data", ctypes.c_int16)]
+
+
+class sockaddr_in(ctypes.Structure):
+    _fields_ = [("sin_family", ctypes.c_ushort),
+                ("sin_port", ctypes.c_uint16),
+                ("sin_addr", ctypes.c_int8)]
+
+
+class pcap_addr(ctypes.Structure):
+    pass
+
+
+pcap_addr._fields_ = [('next', ctypes.POINTER(pcap_addr)),
+                      ('addr', ctypes.POINTER(sockaddr_in)),
+                      ('netmask', ctypes.POINTER(sockaddr_in)),
+                      ('broadaddr', ctypes.POINTER(sockaddr_in)),
+                      ('dstaddr', ctypes.POINTER(sockaddr_in))]
+
+
+class pcap_if(ctypes.Structure):
+    pass
+
+
+pcap_if._fields_ = [('pcap_if', ctypes.POINTER(pcap_if)),
+                    ('name', c_string),
+                    ('description', c_string),
+                    ('addresses', ctypes.POINTER(pcap_addr)),
+                    ('flags', ctypes.c_uint)]
 
 
 # Import all necessary functions from the DLL and set their argument and return types
@@ -80,12 +114,27 @@ _pcap_setfilter = dll.pcap_setfilter
 _pcap_setfilter.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(bpf_program)]
 _pcap_setfilter.restype = ctypes.c_int
 
+_pcap_findalldevs = dll.pcap_findalldevs
+_pcap_findalldevs.argtypes = [ctypes.POINTER(ctypes.POINTER(pcap_if)), c_string]
+_pcap_findalldevs.restype = ctypes.c_int
+
 
 class WinPcap:
     """
     Wrapper class for (a subset of) pcap. See e.g. https://www.winpcap.org/docs/docs_412/html/main.html for a more
     detailed documentation of the underlying functionality.
     """
+
+    @staticmethod
+    def pcap_get_all_devices():
+        devices = ctypes.POINTER(pcap_if)()
+        error_buffer = ctypes.create_string_buffer(256)
+        ret_val = _pcap_findalldevs(devices, error_buffer)
+
+        if ret_val == 0:
+            return devices
+        else:
+            return None
 
     @staticmethod
     def pcap_open_live(device, to_ms, snaplen=0xffff, promisc=0):
