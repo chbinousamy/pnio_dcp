@@ -44,13 +44,21 @@ class pcap_pkthdr(ctypes.Structure):
 
 class sockaddr(ctypes.Structure):
     _fields_ = [("sa_family", ctypes.c_ushort),
-                ("sa_data", ctypes.c_int16)]
+                ("sa_data", ctypes.c_ubyte * 14)]
 
 
 class sockaddr_in(ctypes.Structure):
     _fields_ = [("sin_family", ctypes.c_ushort),
                 ("sin_port", ctypes.c_uint16),
-                ("sin_addr", ctypes.c_int8)]
+                ("sin_addr", 4 * ctypes.c_ubyte)]
+
+
+class sockaddr_in6(ctypes.Structure):
+    _fields_ = [("sin6_family", ctypes.c_ushort),
+                ("sin6_port", ctypes.c_uint16),
+                ("sin6_flowinfo", ctypes.c_uint32),
+                ("sin6_addr", 16 * ctypes.c_ubyte),
+                ("sin6_scope_id", ctypes.c_uint32)]
 
 
 class pcap_addr(ctypes.Structure):
@@ -58,10 +66,10 @@ class pcap_addr(ctypes.Structure):
 
 
 pcap_addr._fields_ = [('next', ctypes.POINTER(pcap_addr)),
-                      ('addr', ctypes.POINTER(sockaddr_in)),
-                      ('netmask', ctypes.POINTER(sockaddr_in)),
-                      ('broadaddr', ctypes.POINTER(sockaddr_in)),
-                      ('dstaddr', ctypes.POINTER(sockaddr_in))]
+                      ('addr', ctypes.POINTER(sockaddr)),
+                      ('netmask', ctypes.POINTER(sockaddr)),
+                      ('broadaddr', ctypes.POINTER(sockaddr)),
+                      ('dstaddr', ctypes.POINTER(sockaddr))]
 
 
 class pcap_if(ctypes.Structure):
