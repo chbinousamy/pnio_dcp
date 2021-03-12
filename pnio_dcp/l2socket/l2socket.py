@@ -130,7 +130,7 @@ class PcapWrapper:
 
 class L2pcapSocket:
 
-    def __init__(self, interface, filter=None):
+    def __init__(self, ip=None, interface=None, filter=None):
         self.pcap = PcapWrapper(interface)
         if filter:
             self.pcap.set_bpf_filter(filter)
@@ -147,8 +147,8 @@ class L2pcapSocket:
 
 
 class L2ScapySocket:
-    def __init__(self, iface=None, filter=None):
-        self.__s = conf.L2socket(iface=iface, filter=filter)
+    def __init__(self, ip=None, interface=None, filter=None):
+        self.__s = conf.L2socket(iface=interface, filter=filter)
 
     def send(self, data):
         self.__s.send(data)

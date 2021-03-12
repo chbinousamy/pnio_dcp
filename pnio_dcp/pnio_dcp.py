@@ -53,7 +53,7 @@ class DCP:
         # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
         # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
         socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
-        self.__s = L2Socket(iface=network_interface, filter=socket_filter)
+        self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter)
         self.__frame = None
         self.__service = None
         self.__service_type = None
