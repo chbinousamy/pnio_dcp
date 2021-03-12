@@ -76,7 +76,7 @@ class pcap_if(ctypes.Structure):
     pass
 
 
-pcap_if._fields_ = [('pcap_if', ctypes.POINTER(pcap_if)),
+pcap_if._fields_ = [('next', ctypes.POINTER(pcap_if)),
                     ('name', c_string),
                     ('description', c_string),
                     ('addresses', ctypes.POINTER(pcap_addr)),
