@@ -78,11 +78,9 @@ class PcapDevice:
 
 
 class PcapWrapper:
-    def __init__(self, interface, timeout_ms=100):
-        # TODO: convert network name to valid device name for pcapc
-
+    def __init__(self, device_name, timeout_ms=100):
         # Open the pcap object
-        self.pcap = WinPcap.pcap_open_live(interface, timeout_ms)
+        self.pcap = WinPcap.pcap_open_live(device_name, timeout_ms)
         # Set mintocopy to 0 to avoid buffering of packets within Npcap
         WinPcap.pcap_setmintocopy(self.pcap, 0)
 
@@ -147,7 +145,8 @@ class PcapWrapper:
 class L2pcapSocket:
 
     def __init__(self, ip=None, interface=None, filter=None):
-        self.pcap = PcapWrapper(interface)
+        pcap_device_name = PcapWrapper.get_device_name_from_ip(ip)
+        self.pcap = PcapWrapper(pcap_device_name)
         if filter:
             self.pcap.set_bpf_filter(filter)
 
