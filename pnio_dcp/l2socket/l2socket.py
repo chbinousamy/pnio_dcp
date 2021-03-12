@@ -87,6 +87,22 @@ class PcapWrapper:
         WinPcap.pcap_setmintocopy(self.pcap, 0)
 
     @staticmethod
+    def get_device_name_from_ip(ip):
+        def filter_by_ip(device):
+            for address in device.addresses:
+                if address.address.address.ip_address == ip:
+                    return True
+            return False
+
+        devices = PcapWrapper.get_all_devices()
+        devices = [device for device in devices if filter_by_ip(device)]
+
+        if not devices:
+            return None
+        else:
+            return devices[0].name
+
+    @staticmethod
     def get_all_devices():
         devices = WinPcap.pcap_get_all_devices()
         if devices is None:
