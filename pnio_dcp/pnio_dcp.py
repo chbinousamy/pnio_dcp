@@ -14,7 +14,7 @@ import pnio_dcp.protocol as protocol
 from .error import DcpTimeoutError
 from .protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from .util import mac_to_hex, hex_to_mac, hex_to_ip
-from pnio_dcp.l2socket.l2socket import L2pcapSocket as L2Socket
+from pnio_dcp.l2socket import L2Socket
 
 
 logger = logging.getLogger(__name__)

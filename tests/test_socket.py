@@ -4,14 +4,14 @@ import psutil
 import logging
 import socket
 
-from pnio_dcp.l2socket.l2socket import L2pcapSocket
+from pnio_dcp.l2socket.l2socket import L2PcapSocket
 from mock_return import MockReturn
 
 
 @pytest.fixture(scope='function')
 def l2_socket():
     ip = TestPcapSocket.get_ip()
-    l2_socket = L2pcapSocket(ip)
+    l2_socket = L2PcapSocket(ip)
     yield l2_socket
     l2_socket.close()
 
@@ -32,7 +32,7 @@ class TestPcapSocket:
     def test_open_close(self):
         ip = TestPcapSocket.get_ip()
 
-        l2_socket = L2pcapSocket(ip)
+        l2_socket = L2PcapSocket(ip)
         l2_socket.close()
 
     def test_send(self, l2_socket):
@@ -72,7 +72,7 @@ class TestPcapSocket:
         valid_data = mock_return.identify_response('IDENTIFY')[0]
         invalid_data = bytes([0] * 64)
 
-        l2_socket = L2pcapSocket(ip, filter)
+        l2_socket = L2PcapSocket(ip, filter)
         l2_socket.send(valid_data)
 
         end = time.time() + self.timeout
