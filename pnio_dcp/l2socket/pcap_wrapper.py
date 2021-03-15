@@ -3,6 +3,7 @@ from collections import namedtuple
 from pnio_dcp.l2socket.winpcap import WinPcap, bpf_program, pcap_pkthdr, pcap_if, sockaddr_in, sockaddr_in6
 import ctypes
 import socket
+import ipaddress
 
 IPv4Address = namedtuple("IPv4Address", ["port", "ip_address"])
 IPv6Address = namedtuple("IPv6Address", ["port", "flow_info", "ip_address", "scope_id"])
@@ -47,9 +48,9 @@ class SocketAddress:
         :rtype: string
         """
         if self.address_family == socket.AF_INET:
-            return '.'.join([str(group) for group in ip_address])
+            return str(ipaddress.IPv4Address(bytes(ip_address)))
         elif self.address_family == socket.AF_INET6:
-            return ':'.join([f"{group:x}" for group in ip_address])
+            return str(ipaddress.IPv6Address(bytes(ip_address)))
 
     def __str__(self):
         """

@@ -20,17 +20,24 @@ class TestPcapSocket:
     timeout = 10
 
     @staticmethod
-    def get_ip():
+    def get_ip(address_family=socket.AF_INET):
         addrs = psutil.net_if_addrs()
         for iface_name, config in addrs.items():
             for address in config:
-                if address.family == socket.AF_INET and address.address != '127.0.0.1':
+                if address.family == address_family and address.address != '127.0.0.1':
                     logging.info(f"Using ip {address.address} for socket tests.")
                     return address.address
         logging.warning("Could not find valid ip address with psutil.net_if_addrs()")
 
-    def test_open_close(self):
+    def test_open_close_ipv4(self):
         ip = TestPcapSocket.get_ip()
+
+        l2_socket = L2PcapSocket(ip)
+        l2_socket.close()
+
+    def test_open_close_ipv6(self):
+        ip = TestPcapSocket.get_ip(socket.AF_INET6)
+        print(ip)
 
         l2_socket = L2PcapSocket(ip)
         l2_socket.close()
