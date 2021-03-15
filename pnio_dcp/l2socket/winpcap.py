@@ -163,7 +163,7 @@ class WinPcap:
     @staticmethod
     def pcap_close(p):
         """
-        Closes a given pcap object, closing all associated files and deallocation resources.
+        Closes a given pcap object, closing all associated files and deallocating resources.
         :param p: The pcap object to close.
         :type p: POINTER(pcap_t)
         """
