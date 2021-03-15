@@ -11,9 +11,9 @@ import time
 import psutil
 
 import pnio_dcp.protocol as protocol
-from .error import DcpTimeoutError
-from .protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
-from .util import mac_to_hex, hex_to_mac, hex_to_ip
+import pnio_dcp.util as util
+from pnio_dcp.error import DcpTimeoutError
+from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from pnio_dcp.l2socket import L2Socket
 
 
@@ -275,7 +275,7 @@ class DCP:
                          payload=block)
 
         # Create ethernet frame
-        eth = eth_header(mac_to_hex(dst_mac), mac_to_hex(self.src_mac), dcp_header.ETHER_TYPE, payload=dcp)
+        eth = eth_header(util.mac_to_hex(dst_mac), util.mac_to_hex(self.src_mac), dcp_header.ETHER_TYPE, payload=dcp)
 
         # Send the request
         self.__s.send(bytes(eth))
@@ -374,7 +374,7 @@ class DCP:
         # Otherwise, extract a device from the DCP payload
         length = pro.len
         device = Device()
-        device.MAC = hex_to_mac(eth.source)
+        device.MAC = util.hex_to_mac(eth.source)
         # Process each DCP data block in the payload and modify the attributes of the device accordingly
         while length > 6:
             device, block_len = self.__process_block(blocks, device)
@@ -395,7 +395,7 @@ class DCP:
         :return: The ethernet payload as dcp_header object if the response is valid, None otherwise.
         :rtype: Optional[dcp_header]
         """
-        if hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_header.ETHER_TYPE:
+        if util.hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_header.ETHER_TYPE:
             return
         pro = dcp_header(eth.payload)
         if not (pro.service_type == dcp_header.RESPONSE):
@@ -428,9 +428,9 @@ class DCP:
         if block_option == DCPBlock.NAME_OF_STATION:
             device.name_of_station = block.payload.rstrip(b'\x00').decode()
         elif block_option == DCPBlock.IP_ADDRESS:
-            device.IP = hex_to_ip(block.payload[0:4])
-            device.netmask = hex_to_ip(block.payload[4:8])
-            device.gateway = hex_to_ip(block.payload[8:12])
+            device.IP = util.hex_to_ip(block.payload[0:4])
+            device.netmask = util.hex_to_ip(block.payload[4:8])
+            device.gateway = util.hex_to_ip(block.payload[8:12])
         elif block_option == DCPBlock.DEVICE_FAMILY:
             device.family = block.payload.rstrip(b'\x00').decode()
 
