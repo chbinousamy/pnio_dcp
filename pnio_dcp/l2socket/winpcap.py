@@ -6,17 +6,14 @@ import pathlib
 npcap_path = pathlib.Path(os.environ["WINDIR"], "System32", "Npcap")
 ctypes.CDLL(str(npcap_path / "Packet.dll"))
 dll = ctypes.CDLL(str(npcap_path / "wpcap.dll"))
-_lib = dll
 
 # Define all necessary structs and type aliases
 bpf_u_int32 = ctypes.c_uint32
 pcap_t = ctypes.c_void_p
 u_char = ctypes.c_ubyte
 c_string = ctypes.c_char_p
-null_pointer = ctypes.POINTER(ctypes.c_int)()
 
 # Structures for the structs used as in- or output types of the functions imported from the pcap DLL
-# The this application, necessary structures are: bpf_program with bpf_insn, and pcap_pkthdr with timeval
 
 
 class bpf_insn(ctypes.Structure):
@@ -92,6 +89,7 @@ pcap_if._fields_ = [('next', ctypes.POINTER(pcap_if)),
 #   - pcap_sendpacket
 #   - pcap_compile
 #   - pcap_setfilter
+#   - pcap_findalldevs
 
 _pcap_open_live = dll.pcap_open_live
 _pcap_open_live.argtypes = [c_string, ctypes.c_int, ctypes.c_int, ctypes.c_int, c_string]
@@ -132,17 +130,6 @@ class WinPcap:
     Wrapper class for (a subset of) pcap. See e.g. https://www.winpcap.org/docs/docs_412/html/main.html for a more
     detailed documentation of the underlying functionality.
     """
-
-    @staticmethod
-    def pcap_get_all_devices():
-        devices = ctypes.POINTER(pcap_if)()
-        error_buffer = ctypes.create_string_buffer(256)
-        ret_val = _pcap_findalldevs(devices, error_buffer)
-
-        if ret_val == 0:
-            return devices
-        else:
-            return None
 
     @staticmethod
     def pcap_open_live(device, to_ms, snaplen=0xffff, promisc=0):
@@ -258,3 +245,18 @@ class WinPcap:
         :rtype: int
         """
         return _pcap_setfilter(p, fp)
+
+    @staticmethod
+    def pcap_findalldevs(alldevsp):
+        """
+        Finds all network devices that can be opened with pcap_open_live and returns them as list of pcap_if objects.
+        :param alldevsp: Use to return a pointer to the first device found.
+        :type alldevsp: POINTER(POINTER(pcap_if))
+        :return: Return value of findalldevs (0 on success, -1 on failure) and the error message in case of an error.
+        :rtype: Tuple(int, Optional(string))
+        """
+        error_buffer = ctypes.create_string_buffer(256)
+        return_value = _pcap_findalldevs(alldevsp, error_buffer)
+
+        error_message = None if return_value == 0 else error_buffer.value
+        return return_value, error_message

@@ -1,7 +1,6 @@
 from collections import namedtuple
 
-from pnio_dcp.l2socket.winpcap import WinPcap, bpf_program, pcap_pkthdr
-from pnio_dcp.l2socket.winpcap import sockaddr_in, sockaddr_in6
+from pnio_dcp.l2socket.winpcap import WinPcap, bpf_program, pcap_pkthdr, pcap_if, sockaddr_in, sockaddr_in6
 import ctypes
 import socket
 from scapy.all import conf
@@ -102,8 +101,10 @@ class PcapWrapper:
 
     @staticmethod
     def get_all_devices():
-        devices = WinPcap.pcap_get_all_devices()
-        if devices is None:
+        devices = ctypes.POINTER(pcap_if)()
+        result, error_message = WinPcap.pcap_findalldevs(devices)
+
+        if result != 0:
             return None
 
         parsed_devices = []
