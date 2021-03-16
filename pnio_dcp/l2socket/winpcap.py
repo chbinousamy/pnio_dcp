@@ -1,15 +1,15 @@
 import ctypes
 import os
 import pathlib
+import ctypes.util
 
 # Try loading Pcap DLL from Windows/System32/Npcap
-npcap_path = pathlib.Path(os.environ["WINDIR"], "System32", "Npcap")
+npcap_path = pathlib.Path(os.environ["WINDIR"], "System32", "Npcap2")
 if npcap_path.exists():
-    ctypes.CDLL(str(npcap_path / "Packet.dll"))
-    dll = ctypes.CDLL(str(npcap_path / "wpcap.dll"))
-else:
-    # If loading Npcap failed, try WinPcap
-    dll = ctypes.CDLL("wpcap.dll")
+    os.environ['PATH'] = f"{npcap_path};{os.environ['PATH']}"
+    ctypes.CDLL(ctypes.util.find_library("Packet"))
+print(f"Pcap DLL: {ctypes.util.find_library('wpcap')}")
+dll = ctypes.CDLL(ctypes.util.find_library("wpcap"))
 
 # Define all necessary structs and type aliases
 bpf_u_int32 = ctypes.c_uint32
