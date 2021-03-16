@@ -50,8 +50,8 @@ class DCP:
         self.__xid = int(random.getrandbits(32))  # initialize it with a random value
 
         # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
-        # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
-        # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
+        # processed by python. This solves issues in high traffic networks, as otherwise packets might be missed under
+        # heavy load when python is not fast enough processing them.
         socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
         self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter)
         self.__frame = None

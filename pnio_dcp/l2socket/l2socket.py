@@ -1,5 +1,4 @@
 from pnio_dcp.l2socket.pcap_wrapper import PcapWrapper
-from scapy.all import conf
 
 
 class L2PcapSocket:
@@ -43,14 +42,3 @@ class L2PcapSocket:
     def close(self):
         """Close the connection."""
         self.pcap.close()
-
-
-class L2ScapySocket:
-    def __init__(self, ip=None, interface=None, filter=None):
-        self.__s = conf.L2socket(iface=interface, filter=filter)
-
-    def send(self, data):
-        self.__s.send(data)
-
-    def recv(self):
-        return self.__s.recv()
