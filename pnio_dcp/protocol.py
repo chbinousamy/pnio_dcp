@@ -1,6 +1,7 @@
 """
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
+License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
 from .util import create_bytestr, hex_to_mac
 

@@ -1,3 +1,8 @@
+"""
+Copyright (c) 2021 Codewerk GmbH, Karlsruhe.
+All Rights Reserved.
+License: MIT License see LICENSE.md in the pnio_dcp root directory.
+"""
 import ctypes
 import os
 import pathlib

@@ -1,3 +1,8 @@
+"""
+Copyright (c) 2021 Codewerk GmbH, Karlsruhe.
+All Rights Reserved.
+License: MIT License see LICENSE.md in the pnio_dcp root directory.
+"""
 from collections import namedtuple
 
 from pnio_dcp.l2socket.winpcap import WinPcap, bpf_program, pcap_pkthdr, pcap_if, sockaddr_in, sockaddr_in6
