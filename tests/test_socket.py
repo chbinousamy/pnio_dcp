@@ -5,6 +5,7 @@ import logging
 import socket
 
 from pnio_dcp.l2socket.l2socket import L2PcapSocket
+from pnio_dcp.l2socket.pcap_wrapper import PcapWrapper
 from mock_return import MockReturn
 
 
@@ -17,6 +18,15 @@ def l2_socket():
     l2_socket.close()
 
 
+def pcap_available():
+    try:
+        PcapWrapper()
+        return True
+    except OSError:
+        return False
+
+
+@pytest.mark.skipif(not pcap_available(), reason="Could not find Pcap")
 class TestPcapSocket:
     """Test the custom Pcap-based L2-Socket"""
 
