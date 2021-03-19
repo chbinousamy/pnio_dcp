@@ -6,6 +6,7 @@ import socket
 
 from pnio_dcp.l2socket.l2socket import L2PcapSocket
 from pnio_dcp.l2socket.pcap_wrapper import PcapWrapper
+from pnio_dcp.l2socket.pcap_wrapper import WinPcap
 from mock_return import MockReturn
 
 
@@ -49,6 +50,18 @@ class TestPcapSocket:
                     logging.info(f"Using ip {address.address} for socket tests.")
                     return address.address
         logging.warning("Could not find valid ip address with psutil.net_if_addrs()")
+
+    def test_load_dll_twice(self):
+        """
+        Test loading the pcap DLL twice.
+        Expected results: no errors.
+        """
+        # load DLL for the first time
+        win_pcap1 = WinPcap()
+        # set class variable to None so the DLL will be loaded a second time
+        WinPcap._WinPcap__pcap_dll = None
+        # load DLL a second time
+        win_pcap2 = WinPcap()
 
     def test_open_close_ipv4(self):
         """
