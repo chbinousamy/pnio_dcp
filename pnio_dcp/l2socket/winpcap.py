@@ -8,21 +8,11 @@ import os
 import pathlib
 import ctypes.util
 
-# Try loading Pcap DLL from Windows/System32/Npcap
-npcap_path = pathlib.Path(os.environ["WINDIR"], "System32", "Npcap2")
-if npcap_path.exists():
-    os.environ['PATH'] = f"{npcap_path};{os.environ['PATH']}"
-    ctypes.CDLL(ctypes.util.find_library("Packet"))
-print(f"Pcap DLL: {ctypes.util.find_library('wpcap')}")
-dll = ctypes.CDLL(ctypes.util.find_library("wpcap"))
-
 # Define all necessary structs and type aliases
 bpf_u_int32 = ctypes.c_uint32
 pcap_t = ctypes.c_void_p
 u_char = ctypes.c_ubyte
 c_string = ctypes.c_char_p
-
-# Structures for the structs used as in- or output types of the functions imported from the pcap DLL
 
 
 class bpf_insn(ctypes.Structure):
@@ -89,59 +79,84 @@ pcap_if._fields_ = [('next', ctypes.POINTER(pcap_if)),
                     ('flags', ctypes.c_uint)]
 
 
-# Import all necessary functions from the DLL and set their argument and return types
-# The following functions are imported:
-#   - pcap_open_live
-#   - pcap_setmintocopy
-#   - pcap_close
-#   - pcap_next_ex
-#   - pcap_sendpacket
-#   - pcap_compile
-#   - pcap_setfilter
-#   - pcap_findalldevs
-
-_pcap_open_live = dll.pcap_open_live
-_pcap_open_live.argtypes = [c_string, ctypes.c_int, ctypes.c_int, ctypes.c_int, c_string]
-_pcap_open_live.restype = ctypes.POINTER(pcap_t)
-
-_pcap_setmintocopy = dll.pcap_setmintocopy
-_pcap_setmintocopy.argtype = [ctypes.POINTER(pcap_t), ctypes.c_int]
-_pcap_setmintocopy.restype = ctypes.c_int
-
-_pcap_close = dll.pcap_close
-_pcap_close.argtypes = [ctypes.POINTER(pcap_t)]
-_pcap_close.restype = None
-
-_pcap_next_ex = dll.pcap_next_ex
-_pcap_next_ex.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(ctypes.POINTER(pcap_pkthdr)),
-                          ctypes.POINTER(ctypes.POINTER(u_char))]
-_pcap_next_ex.restype = ctypes.c_int
-
-_pcap_sendpacket = dll.pcap_sendpacket
-_pcap_sendpacket.argtypes = [ctypes.POINTER(pcap_t), ctypes.c_void_p, ctypes.c_int]
-_pcap_sendpacket.restype = ctypes.c_int
-
-_pcap_compile = dll.pcap_compile
-_pcap_compile.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(bpf_program), c_string, ctypes.c_int, bpf_u_int32]
-_pcap_compile.restype = ctypes.c_int
-
-_pcap_setfilter = dll.pcap_setfilter
-_pcap_setfilter.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(bpf_program)]
-_pcap_setfilter.restype = ctypes.c_int
-
-_pcap_findalldevs = dll.pcap_findalldevs
-_pcap_findalldevs.argtypes = [ctypes.POINTER(ctypes.POINTER(pcap_if)), c_string]
-_pcap_findalldevs.restype = ctypes.c_int
+def load_dll(library_name):
+    library = ctypes.util.find_library(library_name)
+    if not library:
+        raise OSError(f"Cannot find library {library_name}")
+    return ctypes.CDLL(library)
 
 
 class WinPcap:
+    __pcap_dll = None
+
     """
     Wrapper class for (a subset of) pcap. See e.g. https://www.winpcap.org/docs/docs_412/html/main.html for a more
     detailed documentation of the underlying functionality.
     """
+    def __init__(self):
+        """Create a new WinPcap object, load the WinPcap or Npcap DLL and export the necessary functions"""
+        self.__load_pcap_dll()
+        self.__load_functions_from_dll()
 
-    @staticmethod
-    def pcap_open_live(device, to_ms, snaplen=0xffff, promisc=0):
+    def __load_pcap_dll(self):
+        """
+        Try loading WinPcap or Npcap DLL if it is not already loaded.
+        Will raise an OSError if neither WinPcap nor Npcap can be found.
+        """
+        if self.__pcap_dll is None:
+            npcap_path = pathlib.Path(os.environ["WINDIR"], "System32", "Npcap2")
+            if npcap_path.exists():
+                os.environ['PATH'] = f"{npcap_path};{os.environ['PATH']}"
+                load_dll("Packet")
+            self.__pcap_dll = load_dll("wpcap")
+
+    def __load_functions_from_dll(self):
+        """
+        Import all necessary functions from the DLL and set their argument and return types
+        The following functions are imported:
+          - pcap_open_live
+          - pcap_setmintocopy
+          - pcap_close
+          - pcap_next_ex
+          - pcap_sendpacket
+          - pcap_compile
+          - pcap_setfilter
+          - pcap_findalldevs
+        """
+        self._pcap_open_live = self.__pcap_dll.pcap_open_live
+        self._pcap_open_live.argtypes = [c_string, ctypes.c_int, ctypes.c_int, ctypes.c_int, c_string]
+        self._pcap_open_live.restype = ctypes.POINTER(pcap_t)
+
+        self._pcap_setmintocopy = self.__pcap_dll.pcap_setmintocopy
+        self._pcap_setmintocopy.argtype = [ctypes.POINTER(pcap_t), ctypes.c_int]
+        self._pcap_setmintocopy.restype = ctypes.c_int
+
+        self._pcap_close = self.__pcap_dll.pcap_close
+        self._pcap_close.argtypes = [ctypes.POINTER(pcap_t)]
+        self._pcap_close.restype = None
+
+        self._pcap_next_ex = self.__pcap_dll.pcap_next_ex
+        self._pcap_next_ex.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(ctypes.POINTER(pcap_pkthdr)),
+                                  ctypes.POINTER(ctypes.POINTER(u_char))]
+        self._pcap_next_ex.restype = ctypes.c_int
+
+        self._pcap_sendpacket = self.__pcap_dll.pcap_sendpacket
+        self._pcap_sendpacket.argtypes = [ctypes.POINTER(pcap_t), ctypes.c_void_p, ctypes.c_int]
+        self._pcap_sendpacket.restype = ctypes.c_int
+
+        self._pcap_compile = self.__pcap_dll.pcap_compile
+        self._pcap_compile.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(bpf_program), c_string, ctypes.c_int, bpf_u_int32]
+        self._pcap_compile.restype = ctypes.c_int
+
+        self._pcap_setfilter = self.__pcap_dll.pcap_setfilter
+        self._pcap_setfilter.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(bpf_program)]
+        self._pcap_setfilter.restype = ctypes.c_int
+
+        self._pcap_findalldevs = self.__pcap_dll.pcap_findalldevs
+        self._pcap_findalldevs.argtypes = [ctypes.POINTER(ctypes.POINTER(pcap_if)), c_string]
+        self._pcap_findalldevs.restype = ctypes.c_int
+
+    def pcap_open_live(self, device, to_ms, snaplen=0xffff, promisc=0):
         """
         Create a pcap object and start capturing.
         :param device: The network device to open.
@@ -160,7 +175,7 @@ class WinPcap:
         """
         device_buffer = ctypes.create_string_buffer(device.encode("utf8"))
         error_buffer = ctypes.create_string_buffer(256)
-        p = _pcap_open_live(device_buffer, snaplen, promisc, to_ms, error_buffer)
+        p = self._pcap_open_live(device_buffer, snaplen, promisc, to_ms, error_buffer)
 
         # Check for potential errors
         error = bytes(bytearray(error_buffer)).strip(b"\x00")
@@ -169,17 +184,15 @@ class WinPcap:
 
         return p
 
-    @staticmethod
-    def pcap_close(p):
+    def pcap_close(self, p):
         """
         Closes a given pcap object, closing all associated files and deallocating resources.
         :param p: The pcap object to close.
         :type p: POINTER(pcap_t)
         """
-        _pcap_close(p)
+        self._pcap_close(p)
 
-    @staticmethod
-    def pcap_setmintocopy(p, size):
+    def pcap_setmintocopy(self, p, size):
         """
         Set minimum amount of data received in a single system call (unless the timeout expires).
         :param p: The pcap object.
@@ -189,10 +202,9 @@ class WinPcap:
         :return: 0 on success, -1 on failure.
         :rtype: int
         """
-        return _pcap_setmintocopy(p, size)
+        return self._pcap_setmintocopy(p, size)
 
-    @staticmethod
-    def pcap_next_ex(p, pkt_header, pkt_data):
+    def pcap_next_ex(self, p, pkt_header, pkt_data):
         """
         Read the next available packet from a given interface.
         :param p: The pcap object to read from.
@@ -204,10 +216,9 @@ class WinPcap:
         :return: 1 on success, 0 on timeout, -1 on error, -2 on EOF (offline capture only)
         :rtype: int
         """
-        return _pcap_next_ex(p, pkt_header, pkt_data)
+        return self._pcap_next_ex(p, pkt_header, pkt_data)
 
-    @staticmethod
-    def pcap_sendpacket(p, buf, size=None):
+    def pcap_sendpacket(self, p, buf, size=None):
         """
         Send a raw packet to the network.
         :param p: The pcap object used to send the packet.
@@ -219,10 +230,9 @@ class WinPcap:
         :return: -1 on failure, 0 on success.
         :rtype: int
         """
-        return _pcap_sendpacket(p, buf, size)
+        return self._pcap_sendpacket(p, buf, size)
 
-    @staticmethod
-    def pcap_compile(p, fp, str, optimize=0, netmask=-1):
+    def pcap_compile(self, p, fp, str, optimize=0, netmask=-1):
         """
         Compile he given packet filter into a bpf filter program.
         :param p: The pcap object.
@@ -240,10 +250,9 @@ class WinPcap:
         :rtype: int
         """
         filter_buffer = ctypes.create_string_buffer(str.encode("utf8"))
-        return _pcap_compile(p, fp, filter_buffer, optimize, netmask)
+        return self._pcap_compile(p, fp, filter_buffer, optimize, netmask)
 
-    @staticmethod
-    def pcap_setfilter(p, fp):
+    def pcap_setfilter(self, p, fp):
         """
         Apply a bpf filter to the given capture.
         :param p: The pcap object to apply the filter to.
@@ -253,10 +262,9 @@ class WinPcap:
         :return: -1 on failure, 0 on success.
         :rtype: int
         """
-        return _pcap_setfilter(p, fp)
+        return self._pcap_setfilter(p, fp)
 
-    @staticmethod
-    def pcap_findalldevs(alldevsp):
+    def pcap_findalldevs(self, alldevsp):
         """
         Finds all network devices that can be opened with pcap_open_live and returns them as list of pcap_if objects.
         :param alldevsp: Use to return a pointer to the first device found.
@@ -265,7 +273,7 @@ class WinPcap:
         :rtype: Tuple(int, Optional(string))
         """
         error_buffer = ctypes.create_string_buffer(256)
-        return_value = _pcap_findalldevs(alldevsp, error_buffer)
+        return_value = self._pcap_findalldevs(alldevsp, error_buffer)
 
         error_message = None if return_value == 0 else error_buffer.value
         return return_value, error_message

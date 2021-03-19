@@ -142,7 +142,11 @@ class PcapDevice:
 class PcapWrapper:
     """A wrapper to WinPcap/Npcap with all necessary functions to simulate an L2-Socket on Windows."""
 
-    def __init__(self, device_name, timeout_ms=100):
+    def __init__(self):
+        """Create a new pcap wrapper object and load the underlying DLL"""
+        self.win_pcap = WinPcap()
+
+    def open(self, device_name, timeout_ms=100):
         """
         Open a pcap capture for the given network device.
         :param device_name: The name of the network device, use e.g. get_device_name_from_ip or get_all_devices to find
@@ -152,12 +156,11 @@ class PcapWrapper:
         :type timeout_ms: Optional(int)
         """
         # Open the pcap object
-        self.pcap = WinPcap.pcap_open_live(device_name, timeout_ms)
+        self.pcap = self.win_pcap.pcap_open_live(device_name, timeout_ms)
         # Set mintocopy to 0 to avoid buffering of packets within Npcap
-        WinPcap.pcap_setmintocopy(self.pcap, 0)
+        self.win_pcap.pcap_setmintocopy(self.pcap, 0)
 
-    @staticmethod
-    def get_device_name_from_ip(ip):
+    def get_device_name_from_ip(self, ip):
         """
         Determine the device name expected by pcap for the device with the given ip.
         :param ip: The ip to search for (both IPv4 and IPv6 are possible)
@@ -171,7 +174,7 @@ class PcapWrapper:
                     return True
             return False
 
-        devices = PcapWrapper.get_all_devices()
+        devices = self.get_all_devices()
         devices = [device for device in devices if filter_by_ip(device)]
 
         if not devices:
@@ -179,15 +182,14 @@ class PcapWrapper:
         else:
             return devices[0].name
 
-    @staticmethod
-    def get_all_devices():
+    def get_all_devices(self):
         """
         Get a list of all network devices that can be opened by pcap_open_live (e.g. with the PcapWrapper constructor).
         :return: The list of all network devices found by pcap (might be empty). In case of an error, None is returned.
         :rtype: Optional(List(PcapDevice))
         """
         devices = ctypes.POINTER(pcap_if)()
-        result, error_message = WinPcap.pcap_findalldevs(devices)
+        result, error_message = self.win_pcap.pcap_findalldevs(devices)
 
         if result != 0:
             return None
@@ -209,7 +211,7 @@ class PcapWrapper:
         """
         header = ctypes.POINTER(pcap_pkthdr)()
         pkt_data = ctypes.POINTER(ctypes.c_ubyte)()
-        result = WinPcap.pcap_next_ex(self.pcap, header, pkt_data)
+        result = self.win_pcap.pcap_next_ex(self.pcap, header, pkt_data)
 
         if result <= 0:  # error or timeout
             return None
@@ -226,12 +228,12 @@ class PcapWrapper:
         """
         # Compile the filter to a bpf program
         program = bpf_program()
-        result = WinPcap.pcap_compile(self.pcap, program, bpf_filter)
+        result = self.win_pcap.pcap_compile(self.pcap, program, bpf_filter)
         if result != 0:  # Error compiling
             return False
 
         # Set the compiled bpf program as filter and return whether the filter was set successfully
-        return WinPcap.pcap_setfilter(self.pcap, program) == 0
+        return self.win_pcap.pcap_setfilter(self.pcap, program) == 0
 
     def send(self, packet):
         """
@@ -241,8 +243,8 @@ class PcapWrapper:
         :return: Whether the packet was send successfully.
         :rtype: boolean
         """
-        return WinPcap.pcap_sendpacket(self.pcap, packet, len(packet)) == 0
+        return self.win_pcap.pcap_sendpacket(self.pcap, packet, len(packet)) == 0
 
     def close(self):
         """Close this pcap capture."""
-        WinPcap.pcap_close(self.pcap)
+        self.win_pcap.pcap_close(self.pcap)

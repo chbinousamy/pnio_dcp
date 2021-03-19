@@ -22,8 +22,9 @@ class L2PcapSocket:
         than receiving all packets and only filtering in python).
         :type filter: string
         """
-        pcap_device_name = PcapWrapper.get_device_name_from_ip(ip)
-        self.pcap = PcapWrapper(pcap_device_name)
+        self.pcap = PcapWrapper()
+        pcap_device_name = self.pcap.get_device_name_from_ip(ip)
+        self.pcap.open(pcap_device_name)
         if filter:
             self.pcap.set_bpf_filter(filter)
 
