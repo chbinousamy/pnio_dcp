@@ -1,3 +1,6 @@
+.pre:
+  echo $CI_CONFIG_PROJECT_PATH
+
 include:
   project: 'shacks/python/pyshacks_ci_config'
   file: 'pnio_dcp.gitlab-ci.yml'
