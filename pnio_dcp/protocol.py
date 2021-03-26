@@ -1,8 +1,24 @@
 """
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
+License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
 from .util import create_bytestr, hex_to_mac
+
+
+# Constants for the different DCP frame IDs
+DCP_FRAME_ID_GET_SET = 0xfefd
+DCP_FRAME_ID_IDENTIFY_REQUEST = 0xfefe
+
+# the multicast address for identify all requests
+PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
+# the response delay value for DCP requests
+RESPONSE_DELAY = 0x0080
+# DCP block qualifier to indicate that a value should be stored permanently
+DCP_QUALIFIER_STORE_PERMANENT = [0x00, 0x01]
+# DCP qualifier to for reset to factory with mode communication
+DCP_QUALIFIER_RESET_COMMUNICATION = [0x00, 0x04]
+
 
 eth_header = create_bytestr("eth_header", (
     ("destination",  ("6s", hex_to_mac)),

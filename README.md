@@ -1,32 +1,32 @@
-# PNIO DCP
+# PNIO-DCP
 
-A simple library to send PNIO DCP (PROFINET Dynamic Configuration Protocol) requests and parse the corresponding responses.
+This is a simple Python library to send and receive messages with the Profinet Dynamic Configuration Protocol (DCP) protocol.
+It can send requests and parse the corresponding responses to identify devices over the network, get and set their parameters or reset them to factory settings.
+
+Currently, only Windows is supported but Linux support is planned for a future version.
 
 ## Installation
 
-This package can be installed via `pip`.
-It was tested with python 3.6, other python version might work as well.
+### Windows
 
-If your pip is already set up to handle the Codewerk nexus server:
-```
-pip install pnio_dcp
-```
+To use this library on Windows, Npcap (or WinPcap) is required. Npcap can be downloaded from here: https://nmap.org/npcap/
 
-Using a default installation of pip:
-```
-pip install pnio_dcp -i https://nexus.codewerk.de/nexus/repository/pypi-codewerk/simple -v --trusted-host nexus.codewerk.de
-```
-
-Installing from source code:
+The PNIO-DCP package itself can be installed via `pip` after cloning the repository 
 ```
 pip install <path to project root>
 ```
+It was tested with Python 3.6, other Python versions might work as well.
+
+### Other Operating Systems
+As of now, only Windows is supported. Linux support will be added in the future.
 
 ## Usage
 
+This section gives a short overview of the available features and how to use them. 
+
 Create a new DCP instance with
 ```
-ip = 10.0.0.76
+ip = "10.0.0.76"
 dcp = pnio_dcp.DCP(ip)
 ```
 where the given IP address is the IP of the host machine in the network to use for DCP communication.
@@ -44,7 +44,7 @@ identified_devices = dcp.identify_all()
 ```
 This returns a list containing all devices found. If no devices where found, this list is empty.
 
-To get more information about a specific device the MAC address `mac_address`, use
+To get more information about a specific device with the MAC address `mac_address`, use
 ```
 mac_address = "02:00:00:00:00:00"
 device = dcp.identify(mac_address)
@@ -62,7 +62,7 @@ dcp.set_name_of_station(mac_address, new_name)
 Use `set_ip_address` to set the IP configuration of the device. 
 You must provide the new configuration as list containing the new IP address as first element, the subnet mask as second element, and the router as third element.
 ```
-ip_conf = ['10.0.0.31', '255.255.240.0', '10.0.0.1']
+ip_conf = ["10.0.0.31", "255.255.240.0", "10.0.0.1"]
 dcp.set_ip_address(mac_address, ip_conf)
 ```
 
@@ -84,3 +84,9 @@ The communication parameters of the device with the MAC address `mac_address` ca
 ```
 dcp.reset_to_factory(mac_address)
 ```
+
+## License
+
+This project is licensed under the MIT license.
+
+MIT © 2020-2021 Codewerk GmbH, Karlsruhe

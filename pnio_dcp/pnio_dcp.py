@@ -1,6 +1,7 @@
 """
 Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
+License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
 import logging
 import random
@@ -9,11 +10,12 @@ import socket
 import time
 
 import psutil
-from scapy.all import conf
 
-from .error import DcpTimeoutError
-from .protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
-from .util import mac_to_hex, hex_to_mac, hex_to_ip
+import pnio_dcp.protocol as protocol
+import pnio_dcp.util as util
+from pnio_dcp.error import DcpTimeoutError
+from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
+from pnio_dcp.l2socket import L2Socket
 
 
 logger = logging.getLogger(__name__)
@@ -32,35 +34,30 @@ class Device:
 
 
 class DCP:
+
     def __init__(self, ip):
         """
         Create a new instance, use the given ip to select the network interface.
         :param ip: The ip address used to select the network interface.
         :type ip: string
         """
-        self.__devices = []
         self.__dst_mac = ''
-        self.src_mac, self.iface = self.__get_nic(ip)
+        self.src_mac, network_interface = self.__get_nic(ip)
 
         self.default_timeout = 7  # default timeout for requests (in seconds)
+        self.waiting_time = 2  # time to wait between sending a set request and receiving the response
 
         # the XID is the id of the current transaction and can be used to identify the responses to a request
         self.__xid = int(random.getrandbits(32))  # initialize it with a random value
 
         # This filter in BPF format filters all unrelated packets (i.e. wrong mac address or ether type) before they are
-        # processed by scapy. This solves issues in high traffic networks, as scapy is known to miss packets under heavy
-        # load. See e.g. here: https://scapy.readthedocs.io/en/latest/usage.html#performance-of-scapy
-        self.__socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
-
-        self.__s = conf.L2socket(iface=self.iface, filter=self.__socket_filter)
+        # processed by python. This solves issues in high traffic networks, as otherwise packets might be missed under
+        # heavy load when python is not fast enough processing them.
+        socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
+        self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter)
         self.__frame = None
         self.__service = None
         self.__service_type = None
-
-    def __reopen_socket(self):
-        """Close and reopen the L2 socket used to send and receive DCP packets."""
-        self.__s.close()
-        self.__s = conf.L2socket(iface=self.iface, filter=self.__socket_filter)
 
     @staticmethod
     def __get_nic(ip):
@@ -114,9 +111,9 @@ class DCP:
         :return: A list containing all devices found.
         :rtype: List[Device]
         """
-        self.__dst_mac = '01:0e:cf:00:00:00'
-        self.__frame, self.__service, self.__service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
-        self.__send_request(0xFF, 0xFF, 0)
+        dst_mac = protocol.PROFINET_MULTICAST_MAC_IDENTIFY
+        option, suboption = DCPBlock.ALL
+        self.__send_request(dst_mac, protocol.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.IDENTIFY, option, suboption)
         return self.__read_response(timeout=timeout)
 
     def identify(self, mac):
@@ -127,9 +124,9 @@ class DCP:
         :return: The requested device.
         :rtype: Device
         """
-        self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefe, dcp_header.IDENTIFY, dcp_header.REQUEST
-        self.__send_request(0xFF, 0xFF, 0)
+        option, suboption = DCPBlock.ALL
+        self.__send_request(mac, protocol.DCP_FRAME_ID_IDENTIFY_REQUEST, dcp_header.IDENTIFY, option, suboption)
+
         response = self.__read_response()
         if len(response) == 0:
             logger.debug(f"Timeout: no answer from device with MAC {mac}")
@@ -147,14 +144,13 @@ class DCP:
         a human-readable response message.
         :rtype: ResponseCode
         """
-        self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
         hex_addr = self.__ip_to_hex(ip_conf)
-        block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
-        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], len(hex_addr) + 2,
-                            block_qualifier + hex_addr)
-        time.sleep(2)
+        value = bytes(protocol.DCP_QUALIFIER_STORE_PERMANENT) + hex_addr
 
+        option, suboption = DCPBlock.IP_ADDRESS
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
+
+        time.sleep(self.waiting_time)
         response = self.__read_response(set=True)
 
         if isinstance(response, list):
@@ -180,13 +176,12 @@ class DCP:
         if not re.match(valid_pattern, name):
             raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
-        self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
-        block_qualifier = bytes([0x00, 0x01])  # set BlockQualifier to 'Save the value permanent (1)'
-        self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], len(name) + 2,
-                            block_qualifier + bytes(name, encoding='ascii'))
-        time.sleep(2)
+        value = bytes(protocol.DCP_QUALIFIER_STORE_PERMANENT) + bytes(name, encoding='ascii')
 
+        option, suboption = DCPBlock.NAME_OF_STATION
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
+
+        time.sleep(self.waiting_time)
         response = self.__read_response(set=True)
 
         if isinstance(response, list):
@@ -205,9 +200,9 @@ class DCP:
         :return: The requested IP-address.
         :rtype: string
         """
-        self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
-        self.__send_request(DCPBlock.IP_ADDRESS[0], DCPBlock.IP_ADDRESS[1], 0)
+        option, suboption = DCPBlock.IP_ADDRESS
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.GET, option, suboption)
+
         response = self.__read_response()
         if len(response) == 0:
             logger.debug(f"Timeout: no answer from device with MAC {mac}")
@@ -222,9 +217,9 @@ class DCP:
         :return: The requested name of station.
         :rtype: string
         """
-        self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.GET, dcp_header.REQUEST
-        self.__send_request(DCPBlock.NAME_OF_STATION[0], DCPBlock.NAME_OF_STATION[1], 0)
+        option, suboption = DCPBlock.NAME_OF_STATION
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.GET, option, suboption)
+
         response = self.__read_response()
         if len(response) == 0:
             logger.debug(f"Timeout: no answer from device with MAC {mac}")
@@ -241,10 +236,9 @@ class DCP:
         a human-readable response message.
         :rtype: ResponseCode
         """
-        self.__dst_mac = mac
-        self.__frame, self.__service, self.__service_type = 0xfefd, dcp_header.SET, dcp_header.REQUEST
-        value = (4).to_bytes(2, 'big')
-        self.__send_request(DCPBlock.RESET_TO_FACTORY[0], DCPBlock.RESET_TO_FACTORY[1], len(value), value)
+        option, suboption = DCPBlock.RESET_TO_FACTORY
+        value = bytes(protocol.DCP_QUALIFIER_RESET_COMMUNICATION)
+        self.__send_request(mac, protocol.DCP_FRAME_ID_GET_SET, dcp_header.SET, option, suboption, value)
 
         response = self.__read_response(set=True)
 
@@ -256,34 +250,35 @@ class DCP:
 
         return response
 
-    def __send_request(self, opt, subopt, length, value=None):
+    def __send_request(self, dst_mac, frame_id, service, option, suboption, value=None):
         """
         Send a DCP request with the given option and sub-option and an optional payload (the given value)
-        :param opt: The option of the DCP data block, see DCP specification for more infos.
-        :type opt: int
-        :param subopt: The sub-option of the DCP data block, see DCP specification for more infos.
-        :type subopt: int
-        :param length: The length of DCP payload data, should be 0 if no data is sent.
-        :type length: int
+        :param option: The option of the DCP data block, see DCP specification for more infos.
+        :type option: int
+        :param suboption: The sub-option of the DCP data block, see DCP specification for more infos.
+        :type suboption: int
         :param value: The DCP payload data to send, only used in 'set' functions
         :type value: bytes
         """
-        # Reopen the socket for each request. This avoids receiving outdated responses to another DCP instance in cases
-        # where two or more instances are running on the same machine (i.e. with the same mac address).
-        # Note: this does not help if the two instances make requests at the same time
-        # This avoids processing outdated responses to other DCP instances with the same mac address
-        # (most likely not a particularly common occurrence)
-        self.__reopen_socket()
         self.__xid += 1  # increment the XID wih each request (used to identify a transaction)
 
-        block_content = value if value else bytes()
-        if len(block_content) % 2:  # if the block content has odd length, add one byte padding at the end
+        # Construct the DCPBlockRequest
+        block_content = bytes() if value is None else value
+        length = len(block_content)
+        if length % 2:  # if the block content has odd length, add one byte padding at the end
             block_content += bytes([0x00])
-        block = DCPBlockRequest(opt, subopt, length, block_content)
+        block = DCPBlockRequest(option, suboption, length, block_content)
+        block_length = 2 if service == dcp_header.GET else len(block)
 
-        dcp = dcp_header(self.__frame, self.__service, self.__service_type, self.__xid, 0x0080, len(block),
+        # Create DCP frame
+        service_type = dcp_header.REQUEST
+        dcp = dcp_header(frame_id, service, service_type, self.__xid, protocol.RESPONSE_DELAY, block_length,
                          payload=block)
-        eth = eth_header(mac_to_hex(self.__dst_mac), mac_to_hex(self.src_mac), 0x8892, payload=dcp)
+
+        # Create ethernet frame
+        eth = eth_header(util.mac_to_hex(dst_mac), util.mac_to_hex(self.src_mac), dcp_header.ETHER_TYPE, payload=dcp)
+
+        # Send the request
         self.__s.send(bytes(eth))
 
     def __read_response(self, timeout=None, set=False):
@@ -365,28 +360,29 @@ class DCP:
         # dcp_header object
         pro = self.__prove_for_validity(eth)
 
-        if pro:  # if this is a valid DCP response
-            # parse the DCP blocks in the payload
-            blocks = pro.payload
-
-            # If called inside a set request and the option of the response is 5 ('Control'):
-            # extract and return the return code (as int)
-            if set and blocks[0] == 5:
-                return int(blocks[6])
-
-            # Otherwise, extract a device from the DCP payload
-            length = pro.len
-            device = Device()
-            device.MAC = hex_to_mac(eth.source)
-            # Process each DCP data block in the payload and modify the attributes of the device accordingly
-            while length > 6:
-                device, block_len = self.__process_block(blocks, device)
-                blocks = blocks[block_len + 4:]  # advance to the start of the next block
-                length -= 4 + block_len
-
-            return device
-        else:  # return None for invalid packets
+        # return None immediately for invalid responses
+        if not pro:
             return
+
+        # parse the DCP blocks in the payload
+        blocks = pro.payload
+
+        # If called inside a set request and the option of the response is 5 ('Control'):
+        # extract and return the return code (as int)
+        if set and blocks[0] == 5:
+            return int(blocks[6])
+
+        # Otherwise, extract a device from the DCP payload
+        length = pro.len
+        device = Device()
+        device.MAC = util.hex_to_mac(eth.source)
+        # Process each DCP data block in the payload and modify the attributes of the device accordingly
+        while length > 6:
+            device, block_len = self.__process_block(blocks, device)
+            blocks = blocks[block_len + 4:]  # advance to the start of the next block
+            length -= 4 + block_len
+
+        return device
 
     def __prove_for_validity(self, eth):
         """
@@ -400,7 +396,7 @@ class DCP:
         :return: The ethernet payload as dcp_header object if the response is valid, None otherwise.
         :rtype: Optional[dcp_header]
         """
-        if hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_header.ETHER_TYPE:
+        if util.hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_header.ETHER_TYPE:
             return
         pro = dcp_header(eth.payload)
         if not (pro.service_type == dcp_header.RESPONSE):
@@ -433,9 +429,9 @@ class DCP:
         if block_option == DCPBlock.NAME_OF_STATION:
             device.name_of_station = block.payload.rstrip(b'\x00').decode()
         elif block_option == DCPBlock.IP_ADDRESS:
-            device.IP = hex_to_ip(block.payload[0:4])
-            device.netmask = hex_to_ip(block.payload[4:8])
-            device.gateway = hex_to_ip(block.payload[8:12])
+            device.IP = util.hex_to_ip(block.payload[0:4])
+            device.netmask = util.hex_to_ip(block.payload[4:8])
+            device.gateway = util.hex_to_ip(block.payload[8:12])
         elif block_option == DCPBlock.DEVICE_FAMILY:
             device.family = block.payload.rstrip(b'\x00').decode()
 
