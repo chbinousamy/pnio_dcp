@@ -9,4 +9,5 @@ setup(name="pnio_dcp",
       license='Copyright (c) 2020-2021 Codewerk GmbH, Karlsruhe.',
       packages=find_packages(),
       install_requires=['psutil', 'setuptools_scm', 'importlib_metadata'],
+      extras_require={'test': ['pytest']},
       zip_safe=False)
