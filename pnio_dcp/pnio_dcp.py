@@ -354,7 +354,7 @@ class DCP:
         :rtype: Optional[Union[int, Device]]
         """
         # Parse the data as ethernet packet.
-        eth = eth_header(data)
+        eth = eth_header(data=data)
 
         # Check if the packet is a valid DCP response to the latest request and convert the ethernet payload to a
         # dcp_header object
@@ -398,7 +398,7 @@ class DCP:
         """
         if util.hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_header.ETHER_TYPE:
             return
-        pro = dcp_header(eth.payload)
+        pro = dcp_header(data=eth.payload)
         if not (pro.service_type == dcp_header.RESPONSE):
             return
         if pro.xid != self.__xid:
@@ -421,7 +421,7 @@ class DCP:
         """
         # Extract the first DCPBlock from the given payload.
         # Other blocks may follow after the first, they are ignored by this method.
-        block = DCPBlock(blocks)
+        block = DCPBlock(data=blocks)
 
         # use the option and sub-option to determine which value is encoded in the current block
         # then, extract the value accordingly, decode it and set the corresponding attribute of the device
