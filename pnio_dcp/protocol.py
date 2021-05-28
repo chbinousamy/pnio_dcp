@@ -6,19 +6,6 @@ License: MIT License see LICENSE.md in the pnio_dcp root directory.
 import collections
 import struct
 
-# Constants for the different DCP frame IDs
-DCP_FRAME_ID_GET_SET = 0xfefd
-DCP_FRAME_ID_IDENTIFY_REQUEST = 0xfefe
-
-# the multicast address for identify all requests
-PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
-# the response delay value for DCP requests
-RESPONSE_DELAY = 0x0080
-# DCP block qualifier to indicate that a value should be stored permanently
-DCP_QUALIFIER_STORE_PERMANENT = [0x00, 0x01]
-# DCP qualifier to for reset to factory with mode communication
-DCP_QUALIFIER_RESET_COMMUNICATION = [0x00, 0x04]
-
 HeaderField = collections.namedtuple('HeaderField', ['name', 'format', 'default'])
 
 
@@ -136,13 +123,6 @@ class EthernetPacket(Packet):
 
 
 class DCPPacket(Packet):
-    ETHER_TYPE = 0x8892
-    GET = 3
-    SET = 4
-    IDENTIFY = 5
-    REQUEST = 0
-    RESPONSE = 1
-
     HEADER_FIELD_FORMATS = [
         HeaderField("frame_id", "H", None),
         HeaderField("service_id", "B", None),
@@ -187,13 +167,6 @@ class DCPBlock(Packet):
 
     PAYLOAD_LENGTH_FIELD = "len"
     ADDITIONAL_PAYLOAD_LENGTH = -2
-
-    IP_ADDRESS = (1, 2)
-    DEVICE_FAMILY = (2, 1)
-    NAME_OF_STATION = (2, 2)
-    DEVICE_ID = (2, 3)
-    RESET_TO_FACTORY = (5, 6)
-    ALL = (0xFF, 0xFF)
 
     def __init__(self, opt=None, subopt=None, len=None, status=None, payload=None, data=None):
         if data:
