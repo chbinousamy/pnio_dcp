@@ -136,6 +136,9 @@ class EthernetPacket(Packet):
     ]
 
     def __init__(self, destination=None, source=None, type=None, payload=None, data=None):
+        self.destination = None
+        self.source = None
+        self.type = None
         if data:
             super().__init__(data=data)
         else:
@@ -154,6 +157,12 @@ class DCPPacket(Packet):
 
     def __init__(self, frame_id=None, service_id=None, service_type=None, xid=None, resp=None, len=None, payload=None,
                  data=None):
+        self.frame_id = None
+        self.service_id = None
+        self.service_type = None
+        self.xid = None
+        self.resp = None
+        self.len = None
         if data:
             super().__init__(data=data)
         else:
@@ -171,6 +180,9 @@ class DCPBlockRequest(Packet):
     PAYLOAD_LENGTH_FIELD = "len"
 
     def __init__(self, opt=None, subopt=None, len=None, payload=None, data=None):
+        self.opt = None
+        self.subopt = None
+        self.len = None
         if data:
             super().__init__(data=data)
         else:
@@ -189,6 +201,10 @@ class DCPBlock(Packet):
     ADDITIONAL_PAYLOAD_LENGTH = -2
 
     def __init__(self, opt=None, subopt=None, len=None, status=None, payload=None, data=None):
+        self.opt = None
+        self.subopt = None
+        self.len = None
+        self.status = None
         if data:
             super().__init__(data=data)
         else:
