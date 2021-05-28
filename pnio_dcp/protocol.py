@@ -67,15 +67,6 @@ class Packet:
     # Each field is defined through a HeaderField object defined above.
     HEADER_FIELD_FORMATS = []
 
-    # The name of the header field containing the payload length (if applicable, ignored if None)
-    PAYLOAD_LENGTH_FIELD = None
-    # Additional payload length to be added onto the value provided by the payload length field (if applicable).
-    # TODO is this really necessary?
-    ADDITIONAL_PAYLOAD_LENGTH = 0
-
-    # Whether this type of packet can contain a payload
-    HAS_PAYLOAD = True
-
     def __init__(self, data=None, payload=None, **kwargs):
         """
         Create a new packet. If data is given, the packets is initialized by unpacking the data. Otherwise, the payload
@@ -117,12 +108,15 @@ class Packet:
         for field, value in zip(self.HEADER_FIELD_FORMATS, unpacked_header):
             setattr(self, field.name, field.unpack(value))
 
-        if self.HAS_PAYLOAD:
-            payload_end = None
-            if self.PAYLOAD_LENGTH_FIELD:
-                payload_length = getattr(self, self.PAYLOAD_LENGTH_FIELD) + self.ADDITIONAL_PAYLOAD_LENGTH
-                payload_end = self.header_length + payload_length
-            self.payload = data[self.header_length:payload_end]
+        self.unpack_payload(data)
+
+    def unpack_payload(self, data):
+        """
+        Unpack the payload from the data after the header has already been unpacked.
+        :param data: The whole packet as bytes.
+        :type data: bytes
+        """
+        self.payload = data[self.header_length:]
 
     def pack(self):
         """
@@ -135,8 +129,7 @@ class Packet:
         ordered_header_fields = [field.pack(getattr(self, field.name, None))
                                  for field in self.HEADER_FIELD_FORMATS]
         packed = struct.pack(self.header_format, *ordered_header_fields)
-        if self.HAS_PAYLOAD:
-            packed += bytes(self.payload)
+        packed += bytes(self.payload)
         return packed
 
     def __bytes__(self):
@@ -154,7 +147,7 @@ class Packet:
         :return: The length of the packet.
         :rtype: int
         """
-        payload_length = len(bytes(self.payload)) if self.HAS_PAYLOAD else 0
+        payload_length = len(bytes(self.payload))
         return self.header_length + payload_length
 
 
@@ -208,8 +201,6 @@ class DCPBlockRequest(Packet):
         HeaderField("len", "H"),
     ]
 
-    PAYLOAD_LENGTH_FIELD = "len"
-
     def __init__(self, opt=None, subopt=None, len=None, payload=None, data=None):
         self.opt = None
         self.subopt = None
@@ -218,6 +209,10 @@ class DCPBlockRequest(Packet):
             super().__init__(data=data)
         else:
             super().__init__(opt=opt, subopt=subopt, len=len, payload=payload)
+
+    def unpack_payload(self, data):
+        payload_end = self.header_length + self.len
+        self.payload = data[self.header_length:payload_end]
 
 
 class DCPBlock(Packet):
@@ -228,9 +223,6 @@ class DCPBlock(Packet):
         HeaderField("status", "H"),
     ]
 
-    PAYLOAD_LENGTH_FIELD = "len"
-    ADDITIONAL_PAYLOAD_LENGTH = -2
-
     def __init__(self, opt=None, subopt=None, len=None, status=None, payload=None, data=None):
         self.opt = None
         self.subopt = None
@@ -240,3 +232,7 @@ class DCPBlock(Packet):
             super().__init__(data=data)
         else:
             super().__init__(opt=opt, subopt=subopt, len=len, status=status, payload=payload)
+
+    def unpack_payload(self, data):
+        payload_end = self.header_length + self.len - 2
+        self.payload = data[self.header_length:payload_end]
