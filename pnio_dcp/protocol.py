@@ -5,6 +5,9 @@ License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
 import struct
 from pnio_dcp import util
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class HeaderField:
@@ -89,7 +92,7 @@ class Packet:
             valid_header_fields = [field.name for field in self.HEADER_FIELD_FORMATS]
             invalid_kwargs = [name for name in kwargs.keys() if name not in valid_header_fields]
             if invalid_kwargs:
-                pass  # TODO log warning
+                logger.warning(f"Invalid kwargs passed to Packet for keys: {invalid_kwargs}")
 
             for name, value in kwargs.items():
                 if name in valid_header_fields:
