@@ -3,7 +3,6 @@ Copyright (c) 2020 Codewerk GmbH, Karlsruhe.
 All Rights Reserved.
 License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
-import collections
 import struct
 from pnio_dcp import util
 

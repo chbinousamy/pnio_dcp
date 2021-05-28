@@ -4,9 +4,6 @@ All Rights Reserved.
 License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
 
-import enum
-
-
 # the multicast address for identify all requests
 PROFINET_MULTICAST_MAC_IDENTIFY = '01:0e:cf:00:00:00'
 # the response delay value for DCP requests

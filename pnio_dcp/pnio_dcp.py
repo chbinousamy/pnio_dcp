@@ -11,14 +11,12 @@ import time
 
 import psutil
 
-import pnio_dcp.util as util
-from pnio_dcp.error import DcpTimeoutError
-from pnio_dcp.protocol import DCPPacket, EthernetPacket, DCPBlock, DCPBlockRequest
-from pnio_dcp.l2socket import L2Socket
-
 import pnio_dcp.dcp_constants as dcp_constants
+import pnio_dcp.util as util
 from pnio_dcp.dcp_constants import ServiceType, ServiceID, Option, FrameID, BlockQualifier
-
+from pnio_dcp.error import DcpTimeoutError
+from pnio_dcp.l2socket import L2Socket
+from pnio_dcp.protocol import DCPPacket, EthernetPacket, DCPBlock, DCPBlockRequest
 
 logger = logging.getLogger(__name__)
 
@@ -252,7 +250,7 @@ class DCP:
         # Create DCP frame
         service_type = ServiceType.REQUEST
         dcp = DCPPacket(frame_id, service, service_type, self.__xid, dcp_constants.RESPONSE_DELAY, block_length,
-                         payload=block)
+                        payload=block)
 
         # Create ethernet frame
         eth = EthernetPacket(dst_mac, self.src_mac, dcp_constants.ETHER_TYPE, payload=dcp)
