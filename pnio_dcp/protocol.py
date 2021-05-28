@@ -5,15 +5,35 @@ License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
 import collections
 import struct
+from pnio_dcp import util
 
-HeaderField = collections.namedtuple('HeaderField', ['name', 'format', 'default'])
+
+class HeaderField:
+
+    def __init__(self, name, format, default_value=None, pack_function=None, unpack_function=None):
+        self.name = name
+        self.format = format
+        self.default_value = default_value
+        self.pack_function = pack_function
+        self.unpack_function = unpack_function
+
+    def pack(self, value):
+        if value is None:
+            value = self.default_value
+        if self.pack_function is not None:
+            value = self.pack_function(value)
+        return value
+
+    def unpack(self, value):
+        if self.unpack_function is not None:
+            value = self.unpack_function(value)
+        return value
 
 
 class Packet:
 
     # Defines all fields in the packet header in the correct order.
-    # Each field is defined through a HeaderField tuple consisting of the field name, its format (as expected by the
-    # struct module) and a default value that is used if no other value is provided on packing.
+    # Each field is defined through a HeaderField object defined above.
     HEADER_FIELD_FORMATS = []
 
     # The name of the header field containing the payload length (if applicable, ignored if None)
@@ -64,7 +84,7 @@ class Packet:
         """
         unpacked_header = struct.unpack(self.header_format, data[:self.header_length])
         for field, value in zip(self.HEADER_FIELD_FORMATS, unpacked_header):
-            setattr(self, field.name, value)
+            setattr(self, field.name, field.unpack(value))
 
         if self.HAS_PAYLOAD:
             payload_end = None
@@ -81,7 +101,7 @@ class Packet:
         :return: This packet converted to a bytes object.
         :rtype: bytes
         """
-        ordered_header_fields = [getattr(self, field.name, field.default)
+        ordered_header_fields = [field.pack(getattr(self, field.name, None))
                                  for field in self.HEADER_FIELD_FORMATS]
         packed = struct.pack(self.header_format, *ordered_header_fields)
         if self.HAS_PAYLOAD:
@@ -110,9 +130,9 @@ class Packet:
 class EthernetPacket(Packet):
     """An Ethernet packet consisting of destination and source mac address and an ether type."""
     HEADER_FIELD_FORMATS = [
-        HeaderField("destination", "6s", None),
-        HeaderField("source", "6s", None),
-        HeaderField("type", "H", None),
+        HeaderField("destination", "6s", None, util.mac_address_to_bytes, util.mac_address_to_string),
+        HeaderField("source", "6s", None, util.mac_address_to_bytes, util.mac_address_to_string),
+        HeaderField("type", "H"),
     ]
 
     def __init__(self, destination=None, source=None, type=None, payload=None, data=None):
@@ -124,12 +144,12 @@ class EthernetPacket(Packet):
 
 class DCPPacket(Packet):
     HEADER_FIELD_FORMATS = [
-        HeaderField("frame_id", "H", None),
-        HeaderField("service_id", "B", None),
-        HeaderField("service_type", "B", None),
-        HeaderField("xid", "I", None),
-        HeaderField("resp", "H", None),
-        HeaderField("len", "H", None),
+        HeaderField("frame_id", "H"),
+        HeaderField("service_id", "B"),
+        HeaderField("service_type", "B"),
+        HeaderField("xid", "I"),
+        HeaderField("resp", "H"),
+        HeaderField("len", "H"),
     ]
 
     def __init__(self, frame_id=None, service_id=None, service_type=None, xid=None, resp=None, len=None, payload=None,
@@ -143,9 +163,9 @@ class DCPPacket(Packet):
 
 class DCPBlockRequest(Packet):
     HEADER_FIELD_FORMATS = [
-        HeaderField("opt", "B", None),
-        HeaderField("subopt", "B", None),
-        HeaderField("len", "H", None),
+        HeaderField("opt", "B"),
+        HeaderField("subopt", "B"),
+        HeaderField("len", "H"),
     ]
 
     PAYLOAD_LENGTH_FIELD = "len"
@@ -159,10 +179,10 @@ class DCPBlockRequest(Packet):
 
 class DCPBlock(Packet):
     HEADER_FIELD_FORMATS = [
-        HeaderField("opt", "B", None),
-        HeaderField("subopt", "B", None),
-        HeaderField("len", "H", None),
-        HeaderField("status", "H", None),
+        HeaderField("opt", "B"),
+        HeaderField("subopt", "B"),
+        HeaderField("len", "H"),
+        HeaderField("status", "H"),
     ]
 
     PAYLOAD_LENGTH_FIELD = "len"

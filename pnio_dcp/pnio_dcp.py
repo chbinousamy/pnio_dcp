@@ -80,30 +80,6 @@ class DCP:
                 return iface_mac.replace('-', ':').lower(), iface_name
         raise ValueError(f"Could not find a network interface for ip {ip}")
 
-    @staticmethod
-    def __ip_to_hex(ip_conf):
-        """
-        Converts a list containing strings with IP-address, subnet mask and router into byte-string.
-        :param ip_conf: list of strings in order ['ip address', 'subnet mask', 'router']
-        :type ip_conf: List[string]
-        :return: string of bytes, the content of ip_conf has been converted to hex and joined together.
-        :rtype: bytes
-        """
-        str_hex = ''
-        for param in ip_conf:
-            nums = list(param.split('.'))
-
-            if len(nums) != 4:
-                raise ValueError('Provided IP-address of invalid length')
-            for i in nums:
-                if not i.isdigit():
-                    raise TypeError('Provided invalid IP-octet (non-integer): "{}"'.format(i))
-                if not 0 <= int(i) <= 255:
-                    raise ValueError('Provided value exceeds the allowed range of IP octets (0-255)')
-                str_hex += hex(int(i))[2:].zfill(2)
-
-        return bytes.fromhex(str_hex)
-
     def identify_all(self, timeout=None):
         """
         Send multicast request to identify ALL devices in current network interface and get information about them.
@@ -146,8 +122,9 @@ class DCP:
         a human-readable response message.
         :rtype: ResponseCode
         """
-        hex_addr = self.__ip_to_hex(ip_conf)
-        value = bytes(BlockQualifier.STORE_PERMANENT) + hex_addr
+        # To pack the ip addresses, convert them to bytes and concat them
+        packed_ip_conf = b''.join([util.ip_address_to_bytes(ip_address) for ip_address in ip_conf])
+        value = bytes(BlockQualifier.STORE_PERMANENT) + packed_ip_conf
 
         option, suboption = Option.IP_ADDRESS
         self.__send_request(mac, FrameID.GET_SET, ServiceID.SET, option, suboption, value)
@@ -278,7 +255,7 @@ class DCP:
                          payload=block)
 
         # Create ethernet frame
-        eth = EthernetPacket(util.mac_to_hex(dst_mac), util.mac_to_hex(self.src_mac), dcp_constants.ETHER_TYPE, payload=dcp)
+        eth = EthernetPacket(dst_mac, self.src_mac, dcp_constants.ETHER_TYPE, payload=dcp)
 
         # Send the request
         self.__s.send(bytes(eth))
@@ -377,7 +354,7 @@ class DCP:
         # Otherwise, extract a device from the DCP payload
         length = pro.len
         device = Device()
-        device.MAC = util.hex_to_mac(eth.source)
+        device.MAC = eth.source
         # Process each DCP data block in the payload and modify the attributes of the device accordingly
         while length > 6:
             device, block_len = self.__process_block(blocks, device)
@@ -398,7 +375,7 @@ class DCP:
         :return: The ethernet payload as DCPPacket object if the response is valid, None otherwise.
         :rtype: Optional[DCPPacket]
         """
-        if util.hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_constants.ETHER_TYPE:
+        if eth.destination != self.src_mac or eth.type != dcp_constants.ETHER_TYPE:
             return
         pro = DCPPacket(data=eth.payload)
         if not (pro.service_type == ServiceType.RESPONSE):
@@ -431,9 +408,9 @@ class DCP:
         if block_option == Option.NAME_OF_STATION:
             device.name_of_station = block.payload.rstrip(b'\x00').decode()
         elif block_option == Option.IP_ADDRESS:
-            device.IP = util.hex_to_ip(block.payload[0:4])
-            device.netmask = util.hex_to_ip(block.payload[4:8])
-            device.gateway = util.hex_to_ip(block.payload[8:12])
+            device.IP = util.ip_address_to_string(block.payload[0:4])
+            device.netmask = util.ip_address_to_string(block.payload[4:8])
+            device.gateway = util.ip_address_to_string(block.payload[8:12])
         elif block_option == Option.DEVICE_FAMILY:
             device.family = block.payload.rstrip(b'\x00').decode()
 

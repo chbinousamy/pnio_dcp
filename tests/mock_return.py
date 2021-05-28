@@ -129,5 +129,5 @@ class MockReturn:
 
     def compose_response(self):
         dcp = pnio_dcp.protocol.DCPPacket(self.frame_id, self.service_id, self.service_type, self.xid, 0x0000, len(self.block), payload=self.block)
-        eth = pnio_dcp.protocol.EthernetPacket(pnio_dcp.util.mac_to_hex(self.src), pnio_dcp.util.mac_to_hex(self.dst_custom), self.eth_type, payload=dcp)
+        eth = pnio_dcp.protocol.EthernetPacket(self.src, self.dst_custom, self.eth_type, payload=dcp)
         return [bytes(eth)]
