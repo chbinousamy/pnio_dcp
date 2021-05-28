@@ -173,7 +173,3 @@ class DCPBlock(Packet):
             super().__init__(data=data)
         else:
             super().__init__(opt=opt, subopt=subopt, len=len, status=status, payload=payload)
-
-
-dcp_header = DCPPacket
-eth_header = EthernetPacket

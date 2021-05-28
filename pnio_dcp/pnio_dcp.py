@@ -13,7 +13,7 @@ import psutil
 
 import pnio_dcp.util as util
 from pnio_dcp.error import DcpTimeoutError
-from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
+from pnio_dcp.protocol import DCPPacket, EthernetPacket, DCPBlock, DCPBlockRequest
 from pnio_dcp.l2socket import L2Socket
 
 import pnio_dcp.dcp_constants as dcp_constants
@@ -274,11 +274,11 @@ class DCP:
 
         # Create DCP frame
         service_type = ServiceType.REQUEST
-        dcp = dcp_header(frame_id, service, service_type, self.__xid, dcp_constants.RESPONSE_DELAY, block_length,
+        dcp = DCPPacket(frame_id, service, service_type, self.__xid, dcp_constants.RESPONSE_DELAY, block_length,
                          payload=block)
 
         # Create ethernet frame
-        eth = eth_header(util.mac_to_hex(dst_mac), util.mac_to_hex(self.src_mac), dcp_constants.ETHER_TYPE, payload=dcp)
+        eth = EthernetPacket(util.mac_to_hex(dst_mac), util.mac_to_hex(self.src_mac), dcp_constants.ETHER_TYPE, payload=dcp)
 
         # Send the request
         self.__s.send(bytes(eth))
@@ -342,7 +342,7 @@ class DCP:
     def __parse_dcp_packet(self, data, set):
         """
         Validate and parse a received ethernet packet (given via the data parameter):
-        Parse the data as ethernet packet, check if it is a valid DCP response and convert it to a dcp_header object.
+        Parse the data as ethernet packet, check if it is a valid DCP response and convert it to a DCPPacket object.
         Then, parse to DCP payload to extract and return the response value.
         If this the response to a set requests (i.e. the set parameter is True): the return code is extracted from the
         payload and returned.
@@ -356,10 +356,10 @@ class DCP:
         :rtype: Optional[Union[int, Device]]
         """
         # Parse the data as ethernet packet.
-        eth = eth_header(data=data)
+        eth = EthernetPacket(data=data)
 
         # Check if the packet is a valid DCP response to the latest request and convert the ethernet payload to a
-        # dcp_header object
+        # DCPPacket object
         pro = self.__prove_for_validity(eth)
 
         # return None immediately for invalid responses
@@ -392,15 +392,15 @@ class DCP:
         Check if the received packed is a valid DCP-response to the last request. That is: it is addressed to this
         src_mac address, has the correct ether type, has the service type for 'response', and the XID of the last
         request.
-        If the response is valid, return the ethernet payload as dcp_header object. Otherwise, None is returned.
+        If the response is valid, return the ethernet payload as DCPPacket object. Otherwise, None is returned.
         :param eth: The ethernet packet to validate and parse.
-        :type eth: eth_header
-        :return: The ethernet payload as dcp_header object if the response is valid, None otherwise.
-        :rtype: Optional[dcp_header]
+        :type eth: EthernetPacket
+        :return: The ethernet payload as DCPPacket object if the response is valid, None otherwise.
+        :rtype: Optional[DCPPacket]
         """
         if util.hex_to_mac(eth.destination) != self.src_mac or eth.type != dcp_constants.ETHER_TYPE:
             return
-        pro = dcp_header(data=eth.payload)
+        pro = DCPPacket(data=eth.payload)
         if not (pro.service_type == ServiceType.RESPONSE):
             return
         if pro.xid != self.__xid:
