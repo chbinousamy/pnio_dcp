@@ -6,8 +6,6 @@ License: MIT License see LICENSE.md in the pnio_dcp root directory.
 import collections
 import struct
 
-from .util import create_bytestr
-
 # Constants for the different DCP frame IDs
 DCP_FRAME_ID_GET_SET = 0xfefd
 DCP_FRAME_ID_IDENTIFY_REQUEST = 0xfefe
