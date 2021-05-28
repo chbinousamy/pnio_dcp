@@ -8,8 +8,25 @@ from pnio_dcp import util
 
 
 class HeaderField:
+    """Used to describe a header field in a packet header."""
 
     def __init__(self, name, format, default_value=None, pack_function=None, unpack_function=None):
+        """
+        Defines a field in a packet header. At least a name and format must be provided. Optionally, a default value
+        can be given or additional pack and unpack functions to apply before/after packing/unpacking a value.
+        :param name: The name of the header field.
+        :type name: string
+        :param format: The struct format for values stored in this field.
+        :type format: string
+        :param default_value: A default value to use for this header field when no other value is given.
+        :type default_value: Optional[Any]
+        :param pack_function: An additional function applied to the field's value before packing.
+        :type pack_function: Optional[Any -> Any]
+        :param unpack_function: An additional function applied after unpacking a value. Should be inverse to
+        pack_function. An example would be converting mac addresses to binary with the pack_function and revertig them
+        to string with the unpack_function.
+        :type unpack_function: Optional[Any -> Any]
+        """
         self.name = name
         self.format = format
         self.default_value = default_value
@@ -17,6 +34,14 @@ class HeaderField:
         self.unpack_function = unpack_function
 
     def pack(self, value):
+        """
+        Pack the given value using the pack_function (if defined).
+        When the given value is None, the default value is used.
+        :param value: The value to pack.
+        :type value: Any
+        :return: The packed value.
+        :rtype: Any
+        """
         if value is None:
             value = self.default_value
         if self.pack_function is not None:
@@ -24,6 +49,13 @@ class HeaderField:
         return value
 
     def unpack(self, value):
+        """
+        Unpack the given value using the unpack_function (if defined).
+        :param value: The packed value.
+        :type value: Any
+        :return: The unpacked value.
+        :rtype: Any
+        """
         if self.unpack_function is not None:
             value = self.unpack_function(value)
         return value
