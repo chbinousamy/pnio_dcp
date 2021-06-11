@@ -4,6 +4,7 @@ All Rights Reserved.
 License: MIT License see LICENSE.md in the pnio_dcp root directory.
 """
 from pnio_dcp.l2socket.pcap_wrapper import PcapWrapper
+import socket
 
 
 class L2PcapSocket:
@@ -48,3 +49,31 @@ class L2PcapSocket:
     def close(self):
         """Close the connection."""
         self.pcap.close()
+
+
+class L2LinuxSocket:
+
+    def __init__(self, ip, interface=None):
+        self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
+        self.socket.bind((interface, 0))
+
+    def recv(self):
+        """
+        Receive the next packet from pcap.
+        :return: The next raw packet (or None if no packet has been received e.g. due to a timeout).
+        :rtype: Optional(bytes)
+        """
+        ETH_FRAME_LEN = 1514
+        return self.socket.recv(ETH_FRAME_LEN)
+
+    def send(self, data):
+        """
+        Send the given data as raw packet via pcap.
+        :param data: The data to send.
+        :type data: Any, will be converted to bytes
+        """
+        self.socket.sendall(bytes(data))
+
+    def close(self):
+        """Close the connection."""
+        self.socket.close()
