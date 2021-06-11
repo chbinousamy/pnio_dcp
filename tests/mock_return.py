@@ -2,6 +2,10 @@ import binascii
 import random
 import pnio_dcp.protocol
 import pnio_dcp.util
+from collections import namedtuple
+
+
+snicaddr = namedtuple("snicaddr", ["family", "address", "netmask", "broadcast", "ptp"])
 
 
 class MockDevice:
@@ -18,8 +22,8 @@ class MockDevice:
 
 
 class MockReturn:
-    testnetz = {'Testnetz': [{'family': -1, 1: '00-50-56-AC-DD-2E', 'netmask': None, 'broadcast': None, 'ptp': None},
-                             {'family': 2, 1: '10.0.2.124', 'netmask': '255.255.240.0', 'broadcast': None, 'ptp': None}]}
+    testnetz = {'Testnetz': [snicaddr(-1, '00-50-56-AC-DD-2E', None, None, None),
+                             snicaddr(2, '10.0.2.124', '255.255.240.0', None, None)]}
     src = '00:50:56:ac:dd:2e'
     dst = ['00:0c:29:66:47:a5', '00:0e:8c:e5:3c:58', '00:e0:7c:c8:72:58', '40:ec:f8:04:bf:5e', '40:ec:f8:03:b7:df']
     dst_custom = '01:0e:cf:00:00:00'

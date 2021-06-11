@@ -18,6 +18,13 @@ from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from pnio_dcp.l2socket import L2Socket
 
 
+# Set AF_LINK to -1 if undefined (for compatibility with psutil on Windows)
+try:
+    AF_LINK = socket.AF_LINK
+except AttributeError:
+    AF_LINK = -1
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -67,16 +74,27 @@ class DCP:
         If no interface with the given IP address is found, a ValueError is raised.
         :param ip: The IP address to select the network interface with.
         :type ip: string
-        :return: MAC-address, Interface name [or None if no interface with the given IP address is found]
+        :return: MAC-address, Interface name
         :rtype: Tuple[string, string]
         """
-        addrs = psutil.net_if_addrs()
-        for iface_name, config in addrs.items():
-            iface_mac = config[0][1]
-            iface_ip = config[1][1]
-            if iface_ip == ip:
-                return iface_mac.replace('-', ':').lower(), iface_name
-        raise ValueError(f"Could not find a network interface for ip {ip}")
+        for nic, addresses in psutil.net_if_addrs().items():
+            addresses_by_family = {}
+            for address in addresses:
+                addresses_by_family.setdefault(address.family, []).append(address)
+
+            # try to match either ipv4 or ipv6 address, ipv6 addresses may have additional suffix
+            ipv4_match = any(address.address == ip for address in addresses_by_family.get(socket.AF_INET, []))
+            ipv6_match = any(address.address.startswith(ip) for address in addresses_by_family.get(socket.AF_INET6, []))
+
+            if ipv4_match or ipv6_match:
+                if not addresses_by_family.get(AF_LINK, False):
+                    logger.warning(f"Found network interface matching the ip {ip} but no corresponding mac address "
+                                   f"with AF_LINK = {AF_LINK}")
+                    continue
+                mac_address = addresses_by_family[AF_LINK][0].address
+                return mac_address.replace('-', ':').lower(), nic
+        logger.debug(f"Could not find a network interface for ip {ip} in {psutil.net_if_addrs()}")
+        raise ValueError(f"Could not find a network interface for ip {ip}.")
 
     @staticmethod
     def __ip_to_hex(ip_conf):
