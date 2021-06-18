@@ -22,7 +22,10 @@ from pnio_dcp.l2socket import L2Socket
 try:
     AF_LINK = socket.AF_LINK
 except AttributeError:
-    AF_LINK = -1
+    try:
+        AF_LINK = socket.AF_PACKET
+    except AttributeError:
+        AF_LINK = -1
 
 
 logger = logging.getLogger(__name__)
