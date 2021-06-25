@@ -63,6 +63,7 @@ class DCP:
         self.src_mac, network_interface = self.__get_network_interface_and_mac_address(ip)
 
         self.default_timeout = 7  # default timeout for requests (in seconds)
+        self.identify_all_timeout = 7  # timeout to receive all responses for identify_all
         self.waiting_time = 2  # time to wait between sending a set request and receiving the response
 
         # the XID is the id of the current transaction and can be used to identify the responses to a request
@@ -117,7 +118,17 @@ class DCP:
         dst_mac = dcp_constants.PROFINET_MULTICAST_MAC_IDENTIFY
         option, suboption = Option.ALL
         self.__send_request(dst_mac, FrameID.IDENTIFY_REQUEST, ServiceID.IDENTIFY, option, suboption)
-        return self.__read_response(timeout=timeout)
+
+        # Receive all responses until the timeout occurs
+        timeout = self.identify_all_timeout if timeout is None else timeout
+        timed_out = time.time() + timeout
+        devices = []
+        while time.time() < timed_out:
+            device = self.__read_response()
+            if device:
+                devices.append(device)
+
+        return devices
 
     def identify(self, mac):
         """
@@ -131,10 +142,10 @@ class DCP:
         self.__send_request(mac, FrameID.IDENTIFY_REQUEST, ServiceID.IDENTIFY, option, suboption)
 
         response = self.__read_response()
-        if len(response) == 0:
+        if not response:
             logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
-        return response[0]
+        return response
 
     def set_ip_address(self, mac, ip_conf):
         """
@@ -156,11 +167,12 @@ class DCP:
 
         time.sleep(self.waiting_time)
         response = self.__read_response(set_request=True)
+        logger.debug(f"Response is: {response}")
 
-        if isinstance(response, list):
+        if response is None:
             logger.debug(f"Timeout: no answer from device with MAC {mac} to set ip request.")
             raise DcpTimeoutError
-        if not response:
+        elif not response:
             logger.debug(f"Set unsuccessful: {response.get_message()}")
 
         return response
@@ -187,11 +199,12 @@ class DCP:
 
         time.sleep(self.waiting_time)
         response = self.__read_response(set_request=True)
+        logger.debug(f"Response is: {response}")
 
-        if isinstance(response, list):
+        if response is None:
             logger.debug(f"Timeout: no answer from device with MAC {mac} to set name request.")
             raise DcpTimeoutError
-        if not response:
+        elif not response:
             logger.debug(f"Set unsuccessful: {response.get_message()}")
 
         return response
@@ -208,10 +221,10 @@ class DCP:
         self.__send_request(mac, FrameID.GET_SET, ServiceID.GET, option, suboption)
 
         response = self.__read_response()
-        if len(response) == 0:
+        if not response:
             logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
-        return response[0].IP
+        return response.IP
 
     def get_name_of_station(self, mac):
         """
@@ -225,10 +238,10 @@ class DCP:
         self.__send_request(mac, FrameID.GET_SET, ServiceID.GET, option, suboption)
 
         response = self.__read_response()
-        if len(response) == 0:
+        if not response:
             logger.debug(f"Timeout: no answer from device with MAC {mac}")
             raise DcpTimeoutError
-        return response[0].name_of_station
+        return response.name_of_station
 
     def reset_to_factory(self, mac):
         """
@@ -246,10 +259,10 @@ class DCP:
 
         response = self.__read_response(set_request=True)
 
-        if isinstance(response, list):
+        if response is None:
             logger.debug(f"Timeout: no answer from device with MAC {mac} to reset request.")
             raise DcpTimeoutError
-        if not response:
+        elif not response:
             logger.debug(f"Reset unsuccessful: {response.get_message()}")
 
         return response
@@ -300,10 +313,9 @@ class DCP:
         :param set_request: Whether this function was called inside a set-function. True enables error detection.
         Default: False
         :type set_request: boolean
-        :return: If set_request: the ResponseCode, otherwise: list of devices (might be empty if no device was found)
-        :rtype: Union[List[Device], ResponseCode]
+        :return: The received response (or None): a ResponseCode for set requests or a device.
+        :rtype: Optional[Union[Device, ResponseCode]]
         """
-        found_devices = []
         timeout = self.default_timeout if timeout is None else timeout
         try:
             timed_out = time.time() + timeout
@@ -315,21 +327,10 @@ class DCP:
 
                 if received_packet:
                     parsed_response = self.__parse_raw_packet(received_packet, set_request)
-                else:
-                    continue
-
-                if isinstance(parsed_response, Device):
-                    # TODO: get_* and identify should not have to wait for more devices and instead return immediately
-                    found_devices.append(parsed_response)
-                elif isinstance(parsed_response, int):
-                    return ResponseCode(parsed_response)
-                elif not parsed_response:
-                    continue
-
+                    if parsed_response is not None:
+                        return parsed_response
         except TimeoutError:
             pass
-
-        return found_devices
 
     def __receive_packet(self):
         """
@@ -357,7 +358,7 @@ class DCP:
         :param set_request: Whether this function was called inside a set-function.
         :type set_request: boolean
         :return: Valid response: if set request: return code, otherwise: Device object. Invalid response: None
-        :rtype: Optional[Union[int, Device]]
+        :rtype: Optional[Union[ResponseCode, Device]]
         """
         # Parse the data as ethernet packet.
         ethernet_packet = EthernetPacket(data=raw_packet)
@@ -374,9 +375,9 @@ class DCP:
         dcp_blocks = dcp_packet.payload
 
         # If called inside a set request and the option of the response is 5 ('Control'):
-        # extract and return the return code (as int)
+        # extract and return the return code
         if set_request and dcp_blocks[0] == 5:
-            return int(dcp_blocks[6])
+            return ResponseCode(int(dcp_blocks[6]))
 
         # Otherwise, extract a device from the DCP payload
         length = dcp_packet.length
