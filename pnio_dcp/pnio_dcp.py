@@ -8,6 +8,7 @@ import random
 import re
 import socket
 import time
+from functools import reduce
 
 import psutil
 
@@ -35,12 +36,22 @@ class Device:
     """A DCP device defined by its properties (name of station, mac address, ip address etc.)."""
 
     def __init__(self):
+        """Create a new device, all parameters are initialized with an empty string."""
         self.name_of_station = ''
         self.MAC = ''
         self.IP = ''
         self.netmask = ''
         self.gateway = ''
         self.family = ''
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the device including all its parameters.
+        :return: String representation of this device.
+        :rtype: string
+        """
+        parameters = [f'{name}={value}' for name, value in vars(self).items()]
+        return f"Device({', '.join(parameters)})"
 
 
 class DCP:
@@ -496,3 +507,11 @@ class ResponseCode:
         :rtype: boolean
         """
         return self.code == 0
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the response code including the corresponding response message.
+        :return: String representation of this ResponseCode.
+        :rtype: string
+        """
+        return f"ResponseCode({self.get_message()})"
