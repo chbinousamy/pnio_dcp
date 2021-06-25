@@ -60,7 +60,6 @@ class DCP:
         :param ip: The ip address used to select the network interface.
         :type ip: string
         """
-        self.__dst_mac = ''
         self.src_mac, network_interface = self.__get_network_interface_and_mac_address(ip)
 
         self.default_timeout = 7  # default timeout for requests (in seconds)
@@ -75,10 +74,6 @@ class DCP:
         socket_filter = f"ether host {self.src_mac} and ether proto {dcp_constants.ETHER_TYPE}"
         self.__socket = L2Socket(ip=ip, interface=network_interface, filter=socket_filter,
                                  protocol=dcp_constants.ETHER_TYPE)
-
-        self.__frame = None
-        self.__service = None
-        self.__service_type = None
 
     @staticmethod
     def __get_network_interface_and_mac_address(ip):
