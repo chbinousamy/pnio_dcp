@@ -93,6 +93,7 @@ class WinPcap:
     Wrapper class for (a subset of) pcap. See e.g. https://www.winpcap.org/docs/docs_412/html/main.html for a more
     detailed documentation of the underlying functionality.
     """
+
     def __init__(self):
         """Create a new WinPcap object, load the WinPcap or Npcap DLL and export the necessary functions"""
         self.__load_pcap_dll()
@@ -137,7 +138,7 @@ class WinPcap:
 
         self._pcap_next_ex = self.__pcap_dll.pcap_next_ex
         self._pcap_next_ex.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(ctypes.POINTER(pcap_pkthdr)),
-                                  ctypes.POINTER(ctypes.POINTER(u_char))]
+                                       ctypes.POINTER(ctypes.POINTER(u_char))]
         self._pcap_next_ex.restype = ctypes.c_int
 
         self._pcap_sendpacket = self.__pcap_dll.pcap_sendpacket
@@ -145,7 +146,8 @@ class WinPcap:
         self._pcap_sendpacket.restype = ctypes.c_int
 
         self._pcap_compile = self.__pcap_dll.pcap_compile
-        self._pcap_compile.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(bpf_program), c_string, ctypes.c_int, bpf_u_int32]
+        self._pcap_compile.argtypes = [ctypes.POINTER(pcap_t), ctypes.POINTER(bpf_program), c_string, ctypes.c_int,
+                                       bpf_u_int32]
         self._pcap_compile.restype = ctypes.c_int
 
         self._pcap_setfilter = self.__pcap_dll.pcap_setfilter
