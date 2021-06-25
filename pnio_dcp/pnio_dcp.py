@@ -61,7 +61,7 @@ class DCP:
         :type ip: string
         """
         self.__dst_mac = ''
-        self.src_mac, network_interface = self.__get_nic(ip)
+        self.src_mac, network_interface = self.__get_network_interface_and_mac_address(ip)
 
         self.default_timeout = 7  # default timeout for requests (in seconds)
         self.waiting_time = 2  # time to wait between sending a set request and receiving the response
@@ -73,14 +73,15 @@ class DCP:
         # processed by python. This solves issues in high traffic networks, as otherwise packets might be missed under
         # heavy load when python is not fast enough processing them.
         socket_filter = f"ether host {self.src_mac} and ether proto {dcp_constants.ETHER_TYPE}"
-        self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter, protocol=dcp_constants.ETHER_TYPE)
+        self.__socket = L2Socket(ip=ip, interface=network_interface, filter=socket_filter,
+                                 protocol=dcp_constants.ETHER_TYPE)
 
         self.__frame = None
         self.__service = None
         self.__service_type = None
 
     @staticmethod
-    def __get_nic(ip):
+    def __get_network_interface_and_mac_address(ip):
         """
         Get the mac address and name of the network interface corresponding to the given IP address by iterating over
         all available network interfaces and comparing the IP addresses.
@@ -90,7 +91,7 @@ class DCP:
         :return: MAC-address, Interface name
         :rtype: Tuple[string, string]
         """
-        for nic, addresses in psutil.net_if_addrs().items():
+        for network_interface, addresses in psutil.net_if_addrs().items():
             addresses_by_family = {}
             for address in addresses:
                 addresses_by_family.setdefault(address.family, []).append(address)
@@ -105,7 +106,7 @@ class DCP:
                                    f"with AF_LINK = {AF_LINK}")
                     continue
                 mac_address = addresses_by_family[AF_LINK][0].address
-                return mac_address.replace('-', ':').lower(), nic
+                return mac_address.replace('-', ':').lower(), network_interface
         logger.debug(f"Could not find a network interface for ip {ip} in {psutil.net_if_addrs()}")
         raise ValueError(f"Could not find a network interface for ip {ip}.")
 
@@ -159,7 +160,7 @@ class DCP:
         self.__send_request(mac, FrameID.GET_SET, ServiceID.SET, option, suboption, value)
 
         time.sleep(self.waiting_time)
-        response = self.__read_response(set=True)
+        response = self.__read_response(set_request=True)
 
         if isinstance(response, list):
             logger.debug(f"Timeout: no answer from device with MAC {mac} to set ip request.")
@@ -190,7 +191,7 @@ class DCP:
         self.__send_request(mac, FrameID.GET_SET, ServiceID.SET, option, suboption, value)
 
         time.sleep(self.waiting_time)
-        response = self.__read_response(set=True)
+        response = self.__read_response(set_request=True)
 
         if isinstance(response, list):
             logger.debug(f"Timeout: no answer from device with MAC {mac} to set name request.")
@@ -248,7 +249,7 @@ class DCP:
         value = bytes(BlockQualifier.RESET_COMMUNICATION)
         self.__send_request(mac, FrameID.GET_SET, ServiceID.SET, option, suboption, value)
 
-        response = self.__read_response(set=True)
+        response = self.__read_response(set_request=True)
 
         if isinstance(response, list):
             logger.debug(f"Timeout: no answer from device with MAC {mac} to reset request.")
@@ -280,16 +281,16 @@ class DCP:
 
         # Create DCP frame
         service_type = ServiceType.REQUEST
-        dcp = DCPPacket(frame_id, service, service_type, self.__xid, dcp_constants.RESPONSE_DELAY, block_length,
-                        payload=block)
+        dcp_packet = DCPPacket(frame_id, service, service_type, self.__xid, dcp_constants.RESPONSE_DELAY, block_length,
+                               payload=block)
 
         # Create ethernet frame
-        eth = EthernetPacket(dst_mac, self.src_mac, dcp_constants.ETHER_TYPE, payload=dcp)
+        ethernet_packet = EthernetPacket(dst_mac, self.src_mac, dcp_constants.ETHER_TYPE, payload=dcp_packet)
 
         # Send the request
-        self.__s.send(bytes(eth))
+        self.__socket.send(bytes(ethernet_packet))
 
-    def __read_response(self, timeout=None, set=False):
+    def __read_response(self, timeout=None, set_request=False):
         """
         Receive packets and parse the response:
         - receive packets on the L2 socket addressed to the specified host mac address
@@ -300,38 +301,39 @@ class DCP:
         - repeat this until a int response is received or the timeout occurs.
         :param timeout: Timeout in seconds
         :type timeout: integer
-        :param set: Whether this function was called inside a set-function. True enables error detection. Default: False
-        :type set: boolean
-        :return: If set: the ResponseCode, otherwise: list of devices (might be empty if no device was found)
+        :param set_request: Whether this function was called inside a set-function. True enables error detection.
+        Default: False
+        :type set_request: boolean
+        :return: If set_request: the ResponseCode, otherwise: list of devices (might be empty if no device was found)
         :rtype: Union[List[Device], ResponseCode]
         """
-        found = []
+        found_devices = []
         timeout = self.default_timeout if timeout is None else timeout
         try:
             timed_out = time.time() + timeout
             while time.time() < timed_out:
                 try:
-                    data = self.__receive_packet()
+                    received_packet = self.__receive_packet()
                 except socket.timeout:
                     continue
 
-                if data:
-                    ret = self.__parse_dcp_packet(data, set)
+                if received_packet:
+                    parsed_response = self.__parse_raw_packet(received_packet, set_request)
                 else:
                     continue
 
-                if isinstance(ret, Device):
+                if isinstance(parsed_response, Device):
                     # TODO: get_* and identify should not have to wait for more devices and instead return immediately
-                    found.append(ret)
-                elif isinstance(ret, int):
-                    return ResponseCode(ret)
-                elif not ret:
+                    found_devices.append(parsed_response)
+                elif isinstance(parsed_response, int):
+                    return ResponseCode(parsed_response)
+                elif not parsed_response:
                     continue
 
         except TimeoutError:
             pass
 
-        return found
+        return found_devices
 
     def __receive_packet(self):
         """
@@ -340,80 +342,79 @@ class DCP:
         :return: The received packet as bytes or None if no data was received.
         :rtype: Optional[bytes]
         """
-        data = self.__s.recv()
-        if data is None:
-            return
-        data = bytes(data)
-        return data
+        received_packet = self.__socket.recv()
+        if received_packet is not None:
+            received_packet = bytes(received_packet)
+        return received_packet
 
-    def __parse_dcp_packet(self, data, set):
+    def __parse_raw_packet(self, raw_packet, set_request):
         """
-        Validate and parse a received ethernet packet (given via the data parameter):
+        Validate and parse a dcp response from the received raw packet:
         Parse the data as ethernet packet, check if it is a valid DCP response and convert it to a DCPPacket object.
         Then, parse to DCP payload to extract and return the response value.
-        If this the response to a set requests (i.e. the set parameter is True): the return code is extracted from the
+        If this the response to a set requests (i.e. the set_request parameter is True): the return code is extracted from the
         payload and returned.
         Otherwise: a Device object is constructed from the response which is then returned.
         If the response is invalid, None is returned.
-        :param data: The DCP response received by the socket.
-        :type data: bytes
-        :param set: Whether this function was called inside a set-function.
-        :type set: boolean
+        :param raw_packet: The DCP response received by the socket.
+        :type raw_packet: bytes
+        :param set_request: Whether this function was called inside a set-function.
+        :type set_request: boolean
         :return: Valid response: if set request: return code, otherwise: Device object. Invalid response: None
         :rtype: Optional[Union[int, Device]]
         """
         # Parse the data as ethernet packet.
-        eth = EthernetPacket(data=data)
+        ethernet_packet = EthernetPacket(data=raw_packet)
 
         # Check if the packet is a valid DCP response to the latest request and convert the ethernet payload to a
         # DCPPacket object
-        pro = self.__prove_for_validity(eth)
+        dcp_packet = self.__parse_and_validate_dcp_packet(ethernet_packet)
 
         # return None immediately for invalid responses
-        if not pro:
+        if not dcp_packet:
             return
 
         # parse the DCP blocks in the payload
-        blocks = pro.payload
+        dcp_blocks = dcp_packet.payload
 
         # If called inside a set request and the option of the response is 5 ('Control'):
         # extract and return the return code (as int)
-        if set and blocks[0] == 5:
-            return int(blocks[6])
+        if set_request and dcp_blocks[0] == 5:
+            return int(dcp_blocks[6])
 
         # Otherwise, extract a device from the DCP payload
-        length = pro.len
+        length = dcp_packet.len
         device = Device()
-        device.MAC = eth.source
+        device.MAC = ethernet_packet.source
         # Process each DCP data block in the payload and modify the attributes of the device accordingly
         while length > 6:
-            device, block_len = self.__process_block(blocks, device)
-            blocks = blocks[block_len + 4:]  # advance to the start of the next block
+            device, block_len = self.__process_block(dcp_blocks, device)
+            dcp_blocks = dcp_blocks[block_len + 4:]  # advance to the start of the next block
             length -= 4 + block_len
 
         return device
 
-    def __prove_for_validity(self, eth):
+    def __parse_and_validate_dcp_packet(self, ethernet_packet):
         """
         Check and parse the given ethernet packet.
         Check if the received packed is a valid DCP-response to the last request. That is: it is addressed to this
         src_mac address, has the correct ether type, has the service type for 'response', and the XID of the last
         request.
         If the response is valid, return the ethernet payload as DCPPacket object. Otherwise, None is returned.
-        :param eth: The ethernet packet to validate and parse.
-        :type eth: EthernetPacket
+        :param ethernet_packet: The ethernet packet to validate and parse.
+        :type ethernet_packet: EthernetPacket
         :return: The ethernet payload as DCPPacket object if the response is valid, None otherwise.
         :rtype: Optional[DCPPacket]
         """
-        if eth.destination != self.src_mac or eth.type != dcp_constants.ETHER_TYPE:
+        if ethernet_packet.destination != self.src_mac or ethernet_packet.type != dcp_constants.ETHER_TYPE:
             return
-        pro = DCPPacket(data=eth.payload)
-        if not (pro.service_type == ServiceType.RESPONSE):
+        dcp_packet = DCPPacket(data=ethernet_packet.payload)
+        if not (dcp_packet.service_type == ServiceType.RESPONSE):
             return
-        if pro.xid != self.__xid:
-            logger.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(pro.xid)} != {hex(self.__xid)}")
+        if dcp_packet.xid != self.__xid:
+            logger.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(dcp_packet.xid)} != {hex(self.__xid)}")
             return
-        return pro
+        return dcp_packet
 
     @staticmethod
     def __process_block(blocks, device):
