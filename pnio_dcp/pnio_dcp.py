@@ -389,7 +389,7 @@ class DCP:
             return int(dcp_blocks[6])
 
         # Otherwise, extract a device from the DCP payload
-        length = dcp_packet.len
+        length = dcp_packet.length
         device = Device()
         device.MAC = ethernet_packet.source
         # Process each DCP data block in the payload and modify the attributes of the device accordingly
@@ -452,7 +452,7 @@ class DCP:
             device.family = block.payload.rstrip(b'\x00').decode()
 
         # round up the block length to the next even number
-        block_len = block.len + (block.len % 2)
+        block_len = block.length + (block.length % 2)
 
         # Return the modified device and the length of the processed block
         return device, block_len
