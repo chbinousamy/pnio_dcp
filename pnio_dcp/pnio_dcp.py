@@ -279,16 +279,11 @@ class DCP:
 
         # Construct the DCPBlockRequest
         block_content = bytes() if value is None else value
-        length = len(block_content)
-        if length % 2:  # if the block content has odd length, add one byte padding at the end
-            block_content += bytes([0x00])
-        block = DCPBlockRequest(option, suboption, length, block_content)
-        block_length = 2 if service == ServiceID.GET else len(block)
+        block = DCPBlockRequest(option, suboption, payload=block_content)
 
         # Create DCP frame
         service_type = ServiceType.REQUEST
-        dcp_packet = DCPPacket(frame_id, service, service_type, self.__xid, dcp_constants.RESPONSE_DELAY, block_length,
-                               payload=block)
+        dcp_packet = DCPPacket(frame_id, service, service_type, self.__xid, payload=block)
 
         # Create ethernet frame
         ethernet_packet = EthernetPacket(dst_mac, self.src_mac, dcp_constants.ETHER_TYPE, payload=dcp_packet)

@@ -199,7 +199,7 @@ class DCPPacket(Packet):
     ]
 
     def __init__(self, frame_id=None, service_id=None, service_type=None, xid=None,
-                 response_delay=dcp_constants.RESPONSE_DELAY, length=None, payload=None, data=None):
+                 response_delay=dcp_constants.RESPONSE_DELAY, length=None, payload=0, data=None):
         """
         Create a new DCP packet. If data is given, the packets is initialized by unpacking the data. Otherwise, the
         payload and header fields are initialized from the remaining arguments.
@@ -213,7 +213,8 @@ class DCPPacket(Packet):
         :type xid: int
         :param response_delay: The response delay, default is specified in pnio_dcp.dcp_constants.RESPONSE_DELAY.
         :type response_delay: int
-        :param length: The length of the DCP data in the payload. # TODO: compute automatically from the payload?
+        :param length: The length of the DCP data in the payload. Computed automatically from the provided payload if
+        not specified.
         :type length: int
         :param payload: The payload of the packet.
         :type payload: Any
@@ -229,6 +230,7 @@ class DCPPacket(Packet):
         if data:
             super().__init__(data=data)
         else:
+            length = len(payload) if length is None else length
             super().__init__(frame_id=frame_id, service_id=service_id, service_type=service_type, xid=xid,
                              response_delay=response_delay, length=length, payload=payload)
 
@@ -250,7 +252,7 @@ class DCPBlockRequest(Packet):
         HeaderField("length", "H"),
     ]
 
-    def __init__(self, opt=None, subopt=None, length=None, payload=None, data=None):
+    def __init__(self, opt=None, subopt=None, length=None, payload=0, data=None):
         """
         Create a new DCP block request packet. If data is given, the packets is initialized by unpacking the data.
         Otherwise, the payload and header fields are initialized from the remaining arguments.
@@ -260,7 +262,8 @@ class DCPBlockRequest(Packet):
         :type subopt: int
         :param length: The length of the payload.
         :type length: int
-        :param payload: The payload of the packet.
+        :param payload: The payload of the packet. If the payload has uneven length, it will automatically padded with
+        zeros to even length.
         :type payload: Any
         :param data: A DCP packet as expected to be unpacked.
         :type data: bytes
@@ -271,6 +274,9 @@ class DCPBlockRequest(Packet):
         if data:
             super().__init__(data=data)
         else:
+            length = len(payload) if length is None else length
+            if length % 2:  # if the payload has odd length, add one byte padding at the end
+                payload += bytes([0x00])
             super().__init__(opt=opt, subopt=subopt, length=length, payload=payload)
 
     def unpack_payload(self, data):
@@ -292,7 +298,7 @@ class DCPBlock(Packet):
         HeaderField("status", "H"),
     ]
 
-    def __init__(self, opt=None, subopt=None, length=None, status=None, payload=None, data=None):
+    def __init__(self, opt=None, subopt=None, length=None, status=None, payload=0, data=None):
         """
         Create a new DCP block packet. If data is given, the packets is initialized by unpacking the data. Otherwise,
         the payload and header fields are initialized from the remaining arguments.
@@ -316,6 +322,7 @@ class DCPBlock(Packet):
         if data:
             super().__init__(data=data)
         else:
+            length = len(payload) if length is None else length
             super().__init__(opt=opt, subopt=subopt, length=length, status=status, payload=payload)
 
     def unpack_payload(self, data):
