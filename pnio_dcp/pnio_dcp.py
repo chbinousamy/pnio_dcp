@@ -8,16 +8,14 @@ import random
 import re
 import socket
 import time
-from functools import reduce
 
 import psutil
 
 import pnio_dcp.protocol as protocol
 import pnio_dcp.util as util
 from pnio_dcp.error import DcpTimeoutError
-from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from pnio_dcp.l2socket import L2Socket
-
+from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 
 # Set AF_LINK to -1 if undefined (for compatibility with psutil on Windows)
 try:
@@ -27,7 +25,6 @@ except AttributeError:
         AF_LINK = socket.AF_PACKET
     except AttributeError:
         AF_LINK = -1
-
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +72,8 @@ class DCP:
         # processed by python. This solves issues in high traffic networks, as otherwise packets might be missed under
         # heavy load when python is not fast enough processing them.
         socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
-        self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter)
+        self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter, protocol=dcp_header.ETHER_TYPE)
+
         self.__frame = None
         self.__service = None
         self.__service_type = None
@@ -345,6 +343,7 @@ class DCP:
                     continue
 
                 if isinstance(ret, Device):
+                    # TODO: get_* and identify should not have to wait for more devices and instead return immediately
                     found.append(ret)
                 elif isinstance(ret, int):
                     return ResponseCode(ret)
