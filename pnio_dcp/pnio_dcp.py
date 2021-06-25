@@ -167,7 +167,6 @@ class DCP:
 
         time.sleep(self.waiting_time)
         response = self.__read_response(set_request=True)
-        logger.debug(f"Response is: {response}")
 
         if response is None:
             logger.debug(f"Timeout: no answer from device with MAC {mac} to set ip request.")
@@ -199,7 +198,6 @@ class DCP:
 
         time.sleep(self.waiting_time)
         response = self.__read_response(set_request=True)
-        logger.debug(f"Response is: {response}")
 
         if response is None:
             logger.debug(f"Timeout: no answer from device with MAC {mac} to set name request.")
