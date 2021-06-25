@@ -14,9 +14,17 @@ import psutil
 import pnio_dcp.protocol as protocol
 import pnio_dcp.util as util
 from pnio_dcp.error import DcpTimeoutError
-from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 from pnio_dcp.l2socket import L2Socket
+from pnio_dcp.protocol import dcp_header, eth_header, DCPBlock, DCPBlockRequest
 
+# Set AF_LINK to -1 if undefined (for compatibility with psutil on Windows)
+try:
+    AF_LINK = socket.AF_LINK
+except AttributeError:
+    try:
+        AF_LINK = socket.AF_PACKET
+    except AttributeError:
+        AF_LINK = -1
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +33,22 @@ class Device:
     """A DCP device defined by its properties (name of station, mac address, ip address etc.)."""
 
     def __init__(self):
+        """Create a new device, all parameters are initialized with an empty string."""
         self.name_of_station = ''
         self.MAC = ''
         self.IP = ''
         self.netmask = ''
         self.gateway = ''
         self.family = ''
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the device including all its parameters.
+        :return: String representation of this device.
+        :rtype: string
+        """
+        parameters = [f'{name}={value}' for name, value in vars(self).items()]
+        return f"Device({', '.join(parameters)})"
 
 
 class DCP:
@@ -54,7 +72,8 @@ class DCP:
         # processed by python. This solves issues in high traffic networks, as otherwise packets might be missed under
         # heavy load when python is not fast enough processing them.
         socket_filter = f"ether host {self.src_mac} and ether proto {dcp_header.ETHER_TYPE}"
-        self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter)
+        self.__s = L2Socket(ip=ip, interface=network_interface, filter=socket_filter, protocol=dcp_header.ETHER_TYPE)
+
         self.__frame = None
         self.__service = None
         self.__service_type = None
@@ -67,16 +86,27 @@ class DCP:
         If no interface with the given IP address is found, a ValueError is raised.
         :param ip: The IP address to select the network interface with.
         :type ip: string
-        :return: MAC-address, Interface name [or None if no interface with the given IP address is found]
+        :return: MAC-address, Interface name
         :rtype: Tuple[string, string]
         """
-        addrs = psutil.net_if_addrs()
-        for iface_name, config in addrs.items():
-            iface_mac = config[0][1]
-            iface_ip = config[1][1]
-            if iface_ip == ip:
-                return iface_mac.replace('-', ':').lower(), iface_name
-        raise ValueError(f"Could not find a network interface for ip {ip}")
+        for nic, addresses in psutil.net_if_addrs().items():
+            addresses_by_family = {}
+            for address in addresses:
+                addresses_by_family.setdefault(address.family, []).append(address)
+
+            # try to match either ipv4 or ipv6 address, ipv6 addresses may have additional suffix
+            ipv4_match = any(address.address == ip for address in addresses_by_family.get(socket.AF_INET, []))
+            ipv6_match = any(address.address.startswith(ip) for address in addresses_by_family.get(socket.AF_INET6, []))
+
+            if ipv4_match or ipv6_match:
+                if not addresses_by_family.get(AF_LINK, False):
+                    logger.warning(f"Found network interface matching the ip {ip} but no corresponding mac address "
+                                   f"with AF_LINK = {AF_LINK}")
+                    continue
+                mac_address = addresses_by_family[AF_LINK][0].address
+                return mac_address.replace('-', ':').lower(), nic
+        logger.debug(f"Could not find a network interface for ip {ip} in {psutil.net_if_addrs()}")
+        raise ValueError(f"Could not find a network interface for ip {ip}.")
 
     @staticmethod
     def __ip_to_hex(ip_conf):
@@ -313,6 +343,7 @@ class DCP:
                     continue
 
                 if isinstance(ret, Device):
+                    # TODO: get_* and identify should not have to wait for more devices and instead return immediately
                     found.append(ret)
                 elif isinstance(ret, int):
                     return ResponseCode(ret)
@@ -475,3 +506,11 @@ class ResponseCode:
         :rtype: boolean
         """
         return self.code == 0
+
+    def __str__(self):
+        """
+        Return a human-readable string representation of the response code including the corresponding response message.
+        :return: String representation of this ResponseCode.
+        :rtype: string
+        """
+        return f"ResponseCode({self.get_message()})"
