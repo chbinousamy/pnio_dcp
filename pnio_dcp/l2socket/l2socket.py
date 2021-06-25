@@ -22,7 +22,7 @@ class L2PcapSocket:
         self.pcap = PcapWrapper()
         pcap_device_name = self.pcap.get_device_name_from_ip(ip)
         self.pcap.open(pcap_device_name)
-        if filter:
+        if bpf_filter:
             self.pcap.set_bpf_filter(bpf_filter)
 
     def recv(self):
