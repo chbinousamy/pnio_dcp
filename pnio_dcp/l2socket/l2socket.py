@@ -8,26 +8,22 @@ import socket
 
 
 class L2PcapSocket:
-    """
-    An L2 socket based on a wrapper around the Pcap (WinPcap/Npcap) DLL.
-    """
+    """An L2 socket based on a wrapper around the Pcap (WinPcap/Npcap) DLL."""
 
-    def __init__(self, ip, interface=None, filter=None):
+    def __init__(self, ip, bpf_filter=None, **kwargs):
         """
         Open a socket on the network interface with the given IP and using the given BPF filter.
         :param ip: The IP address to open the socket on.
         :type ip: string
-        :param interface: unused
-        :type interface: Any
-        :param filter: The BPF filter used to filter incoming packets directly within pcap (offers better performance
-        than receiving all packets and only filtering in python).
-        :type filter: string
+        :param bpf_filter: The BPF filter used to filter incoming packets directly within pcap (offers better
+        performance than receiving all packets and only filtering in python).
+        :type bpf_filter: string
         """
         self.pcap = PcapWrapper()
         pcap_device_name = self.pcap.get_device_name_from_ip(ip)
         self.pcap.open(pcap_device_name)
         if filter:
-            self.pcap.set_bpf_filter(filter)
+            self.pcap.set_bpf_filter(bpf_filter)
 
     def recv(self):
         """
@@ -51,10 +47,22 @@ class L2PcapSocket:
 
 
 class L2LinuxSocket:
+    """An L2 socket using a raw socket from python's socket module."""
     MTU = 0xffff
     ETH_P_ALL = 3
 
-    def __init__(self, ip=None, interface=None, filter=None, recv_timeout=1, protocol=None):
+    def __init__(self, interface, recv_timeout=1, protocol=None, **kwargs):
+        """
+        Open a socket on the given network interface.
+        :param interface: The network interface to open the socket on.
+        :type interface: string
+        :param recv_timeout: The timeout in seconds for blocking operations (most notably recv), passed to
+        socket.settimeout(). Default is 1.
+        :type recv_timeout: Optional[float]
+        :param protocol: The ethernet protocol number, only packets of that protocol will be received. If not specified
+        ETH_P_ALL is used, receiving all ethernet packets.
+        :type protocol: int
+        """
         protocol = protocol or self.ETH_P_ALL
         self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(protocol))
         self.socket.settimeout(recv_timeout)
