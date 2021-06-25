@@ -262,6 +262,12 @@ class DCP:
     def __send_request(self, dst_mac, frame_id, service, option, suboption, value=None):
         """
         Send a DCP request with the given option and sub-option and an optional payload (the given value)
+        :param dst_mac: The mac address to send the to (as ':' separated string).
+        :type dst_mac: string
+        :param frame_id: The DCP frame ID.
+        :type frame_id: int
+        :param service: The DCP service ID.
+        :type service: int
         :param option: The option of the DCP data block, see DCP specification for more infos.
         :type option: int
         :param suboption: The sub-option of the DCP data block, see DCP specification for more infos.

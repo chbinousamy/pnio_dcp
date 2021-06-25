@@ -65,6 +65,7 @@ class HeaderField:
 
 
 class Packet:
+    """Base class to represent packets and pack/unpack them."""
 
     # Defines all fields in the packet header in the correct order.
     # Each field is defined through a HeaderField object defined above.
@@ -74,7 +75,7 @@ class Packet:
         """
         Create a new packet. If data is given, the packets is initialized by unpacking the data. Otherwise, the payload
         and header fields are initialized from the remaining arguments.
-        :param data: A packed packet es expected by unpack.
+        :param data: A packed packet as expected by unpack.
         :type data: bytes
         :param payload: The payload of the packet.
         :type payload: Any
@@ -163,6 +164,20 @@ class EthernetPacket(Packet):
     ]
 
     def __init__(self, destination=None, source=None, type=None, payload=None, data=None):
+        """
+        Create a new ethernet packet. If data is given, the packets is initialized by unpacking the data. Otherwise,
+        the payload and header fields are initialized from the remaining arguments.
+        :param destination: The mac address of the destination to send to (as ':' separated string).
+        :type destination: string
+        :param source: The mac address of source (as ':' separated string).
+        :type source: string
+        :param type: The ethernet type (i.e. protocol ID).
+        :type type: int
+        :param payload: The payload of the packet.
+        :type payload: Any
+        :param data: A packed ethernet packet.
+        :type data: bytes
+        """
         self.destination = None
         self.source = None
         self.type = None
@@ -173,6 +188,7 @@ class EthernetPacket(Packet):
 
 
 class DCPPacket(Packet):
+    """A DCP packet"""
     HEADER_FIELD_FORMATS = [
         HeaderField("frame_id", "H"),
         HeaderField("service_id", "B"),
@@ -184,6 +200,26 @@ class DCPPacket(Packet):
 
     def __init__(self, frame_id=None, service_id=None, service_type=None, xid=None, resp=None, len=None, payload=None,
                  data=None):
+        """
+        Create a new DCP packet. If data is given, the packets is initialized by unpacking the data. Otherwise, the
+        payload and header fields are initialized from the remaining arguments.
+        :param frame_id: The DCP frame ID.
+        :type frame_id: int
+        :param service_id: The DCP service ID.
+        :type service_id: int
+        :param service_type: The DCP service type.
+        :type service_type: int
+        :param xid: The xid, used to identify the transaction.
+        :type xid: int
+        :param resp: The response delay. # TODO set default?
+        :type resp: int
+        :param len: The length of the DCP data in the payload. # TODO: compute automatically from the payload?
+        :type len: int
+        :param payload: The payload of the packet.
+        :type payload: Any
+        :param data: A DCP packet as expected to be unpacked.
+        :type data: bytes
+        """
         self.frame_id = None
         self.service_id = None
         self.service_type = None
@@ -196,8 +232,18 @@ class DCPPacket(Packet):
             super().__init__(frame_id=frame_id, service_id=service_id, service_type=service_type, xid=xid, resp=resp,
                              len=len, payload=payload)
 
+    def unpack_payload(self, data):
+        """
+        Unpack the payload of length self.len from the data after the header has already been unpacked.
+        :param data: The whole packet as bytes.
+        :type data: bytes
+        """
+        payload_end = self.header_length + self.len
+        self.payload = data[self.header_length:payload_end]
+
 
 class DCPBlockRequest(Packet):
+    """A DCP block packet for a DCP request."""
     HEADER_FIELD_FORMATS = [
         HeaderField("opt", "B"),
         HeaderField("subopt", "B"),
@@ -205,6 +251,20 @@ class DCPBlockRequest(Packet):
     ]
 
     def __init__(self, opt=None, subopt=None, len=None, payload=None, data=None):
+        """
+        Create a new DCP block request packet. If data is given, the packets is initialized by unpacking the data.
+        Otherwise, the payload and header fields are initialized from the remaining arguments.
+        :param opt: The DCP option.
+        :type opt: int
+        :param subopt: The DCP sub-option.
+        :type subopt: int
+        :param len: The length of the payload.
+        :type len: int
+        :param payload: The payload of the packet.
+        :type payload: Any
+        :param data: A DCP packet as expected to be unpacked.
+        :type data: bytes
+        """
         self.opt = None
         self.subopt = None
         self.len = None
@@ -214,11 +274,17 @@ class DCPBlockRequest(Packet):
             super().__init__(opt=opt, subopt=subopt, len=len, payload=payload)
 
     def unpack_payload(self, data):
+        """
+        Unpack the payload of length self.len from the data after the header has already been unpacked.
+        :param data: The whole packet as bytes.
+        :type data: bytes
+        """
         payload_end = self.header_length + self.len
         self.payload = data[self.header_length:payload_end]
 
 
 class DCPBlock(Packet):
+    """A DCP block packet."""
     HEADER_FIELD_FORMATS = [
         HeaderField("opt", "B"),
         HeaderField("subopt", "B"),
@@ -227,6 +293,22 @@ class DCPBlock(Packet):
     ]
 
     def __init__(self, opt=None, subopt=None, len=None, status=None, payload=None, data=None):
+        """
+        Create a new DCP block packet. If data is given, the packets is initialized by unpacking the data. Otherwise,
+        the payload and header fields are initialized from the remaining arguments.
+        :param opt: The DCP option.
+        :type opt: int
+        :param subopt: The DCP sub-option.
+        :type subopt: int
+        :param len: The length of the payload.
+        :type len: int
+        :param status: The block status
+        :type status: int
+        :param payload: The payload of the packet.
+        :type payload: Any
+        :param data: A DCP packet as expected to be unpacked.
+        :type data: bytes
+        """
         self.opt = None
         self.subopt = None
         self.len = None
@@ -237,5 +319,10 @@ class DCPBlock(Packet):
             super().__init__(opt=opt, subopt=subopt, len=len, status=status, payload=payload)
 
     def unpack_payload(self, data):
+        """
+        Unpack the payload of length self.len - 2 from the data after the header has already been unpacked.
+        :param data: The whole packet as bytes.
+        :type data: bytes
+        """
         payload_end = self.header_length + self.len - 2
         self.payload = data[self.header_length:payload_end]
