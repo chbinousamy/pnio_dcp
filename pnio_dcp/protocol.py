@@ -13,14 +13,14 @@ logger = logging.getLogger(__name__)
 class HeaderField:
     """Used to describe a header field in a packet header."""
 
-    def __init__(self, name, format, default_value=None, pack_function=None, unpack_function=None):
+    def __init__(self, name, field_format, default_value=None, pack_function=None, unpack_function=None):
         """
         Defines a field in a packet header. At least a name and format must be provided. Optionally, a default value
         can be given or additional pack and unpack functions to apply before/after packing/unpacking a value.
         :param name: The name of the header field.
         :type name: string
-        :param format: The struct format for values stored in this field.
-        :type format: string
+        :param field_format: The struct format for values stored in this field.
+        :type field_format: string
         :param default_value: A default value to use for this header field when no other value is given.
         :type default_value: Optional[Any]
         :param pack_function: An additional function applied to the field's value before packing.
@@ -31,7 +31,7 @@ class HeaderField:
         :type unpack_function: Optional[Any -> Any]
         """
         self.name = name
-        self.format = format
+        self.field_format = field_format
         self.default_value = default_value
         self.pack_function = pack_function
         self.unpack_function = unpack_function
@@ -82,7 +82,7 @@ class Packet:
         :param kwargs: Can be used to initialize the header fields defined in HEADER_FIELD_FORMATS
         :type kwargs: Any
         """
-        self.header_format = ">" + "".join([field.format for field in self.HEADER_FIELD_FORMATS])
+        self.header_format = ">" + "".join([field.field_format for field in self.HEADER_FIELD_FORMATS])
         self.header_length = struct.calcsize(self.header_format)
 
         self.payload = 0
@@ -160,10 +160,10 @@ class EthernetPacket(Packet):
     HEADER_FIELD_FORMATS = [
         HeaderField("destination", "6s", None, util.mac_address_to_bytes, util.mac_address_to_string),
         HeaderField("source", "6s", None, util.mac_address_to_bytes, util.mac_address_to_string),
-        HeaderField("type", "H"),
+        HeaderField("ether_type", "H"),
     ]
 
-    def __init__(self, destination=None, source=None, type=None, payload=None, data=None):
+    def __init__(self, destination=None, source=None, ether_type=None, payload=None, data=None):
         """
         Create a new ethernet packet. If data is given, the packets is initialized by unpacking the data. Otherwise,
         the payload and header fields are initialized from the remaining arguments.
@@ -171,8 +171,8 @@ class EthernetPacket(Packet):
         :type destination: string
         :param source: The mac address of source (as ':' separated string).
         :type source: string
-        :param type: The ethernet type (i.e. protocol ID).
-        :type type: int
+        :param ether_type: The ethernet type (i.e. protocol ID).
+        :type ether_type: int
         :param payload: The payload of the packet.
         :type payload: Any
         :param data: A packed ethernet packet.
@@ -180,11 +180,11 @@ class EthernetPacket(Packet):
         """
         self.destination = None
         self.source = None
-        self.type = None
+        self.ether_type = None
         if data:
             super().__init__(data=data)
         else:
-            super().__init__(destination=destination, source=source, type=type, payload=payload)
+            super().__init__(destination=destination, source=source, ether_type=ether_type, payload=payload)
 
 
 class DCPPacket(Packet):

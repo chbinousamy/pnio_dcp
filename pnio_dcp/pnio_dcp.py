@@ -188,7 +188,7 @@ class DCP:
         a human-readable response message.
         :rtype: ResponseCode
         """
-        valid_pattern = re.compile(r"^[a-z][a-zA-Z0-9\-\.]*$")
+        valid_pattern = re.compile(r"^[a-z][a-zA-Z0-9\-.]*$")
         if not re.match(valid_pattern, name):
             raise ValueError('Name should correspond DNS standard. A string of invalid format provided.')
         name = name.lower()
@@ -349,8 +349,8 @@ class DCP:
         Validate and parse a dcp response from the received raw packet:
         Parse the data as ethernet packet, check if it is a valid DCP response and convert it to a DCPPacket object.
         Then, parse to DCP payload to extract and return the response value.
-        If this the response to a set requests (i.e. the set_request parameter is True): the return code is extracted from the
-        payload and returned.
+        If this the response to a set requests (i.e. the set_request parameter is True): the return code is extracted
+        from the payload and returned.
         Otherwise: a Device object is constructed from the response which is then returned.
         If the response is invalid, None is returned.
         :param raw_packet: The DCP response received by the socket.
@@ -403,7 +403,7 @@ class DCP:
         :return: The ethernet payload as DCPPacket object if the response is valid, None otherwise.
         :rtype: Optional[DCPPacket]
         """
-        if ethernet_packet.destination != self.src_mac or ethernet_packet.type != dcp_constants.ETHER_TYPE:
+        if ethernet_packet.destination != self.src_mac or ethernet_packet.ether_type != dcp_constants.ETHER_TYPE:
             return
         dcp_packet = DCPPacket(data=ethernet_packet.payload)
         if not (dcp_packet.service_type == ServiceType.RESPONSE):

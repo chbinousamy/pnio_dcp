@@ -234,15 +234,15 @@ class WinPcap:
         """
         return self._pcap_sendpacket(p, buf, size)
 
-    def pcap_compile(self, p, fp, str, optimize=0, netmask=-1):
+    def pcap_compile(self, p, fp, filter_string, optimize=0, netmask=-1):
         """
         Compile he given packet filter into a bpf filter program.
         :param p: The pcap object.
         :type p: POINTER(pcap_t)
         :param fp: A reference to the bpf filter program, filled in by pcap_compile()
         :type fp: bpf_program
-        :param str: The filter expression to compile.
-        :type str: string
+        :param filter_string: The filter expression to compile.
+        :type filter_string: string
         :param optimize: Whether the resulting filter program should be optimized.
         :type optimize: int
         :param netmask: Only used to check for IPv4 broadcast addresses in the filter program. See official Pcap
@@ -251,7 +251,7 @@ class WinPcap:
         :return: -1 on error (0 on success?)
         :rtype: int
         """
-        filter_buffer = ctypes.create_string_buffer(str.encode("utf8"))
+        filter_buffer = ctypes.create_string_buffer(filter_string.encode("utf8"))
         return self._pcap_compile(p, fp, filter_buffer, optimize, netmask)
 
     def pcap_setfilter(self, p, fp):
