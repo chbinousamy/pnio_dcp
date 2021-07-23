@@ -1,0 +1,20 @@
+include:
+  - project: 'shacks/python/pyshacks_ci_config'
+    file: 'pyshack.gitlab-ci.yml'
+  - local: 'pages.gitlab-ci.yml'
+
+default:
+    tags:
+        - pcap
+        - windows
+
+stages:
+  - build
+  - setup
+  - tests
+  - analyse
+  - deploy
+  - pages
+
+pages:
+  stage: pages
