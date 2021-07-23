@@ -401,15 +401,15 @@ class DCP:
         :return: The ethernet payload as DCPPacket object if the response is valid, None otherwise.
         :rtype: Optional[DCPPacket]
         """
-        if ethernet_packet.destination != self.src_mac or ethernet_packet.ether_type != dcp_constants.ETHER_TYPE:
-            return
+        valid_ethernet = ethernet_packet.destination == self.src_mac \
+                         and ethernet_packet.ether_type == dcp_constants.ETHER_TYPE
+
         dcp_packet = DCPPacket(data=ethernet_packet.payload)
-        if not (dcp_packet.service_type == ServiceType.RESPONSE):
-            return
+        valid_dcp = dcp_packet.service_type == ServiceType.RESPONSE and dcp_packet.xid == self.__xid
         if dcp_packet.xid != self.__xid:
             logger.debug(f"Ignoring valid DCP packet with incorrect XID: {hex(dcp_packet.xid)} != {hex(self.__xid)}")
-            return
-        return dcp_packet
+
+        return dcp_packet if valid_ethernet and valid_dcp else None
 
     @staticmethod
     def __process_block(blocks, device):
