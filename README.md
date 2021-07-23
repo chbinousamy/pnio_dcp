@@ -1,7 +1,9 @@
 # PNIO-DCP
 
-This is a simple Python library to send and receive messages with the Profinet Dynamic Configuration Protocol (DCP) protocol.
+A simple Python library to send and receive messages with the Profinet Dynamic Configuration Protocol (DCP) protocol.
 It can send requests and parse the corresponding responses to identify devices over the network, get and set their parameters or reset them to factory settings.
+
+Source code: [https://gitlab.com/pyshacks/pnio_dcp](https://gitlab.com/pyshacks/pnio_dcp)
 
 ## Installation
 
@@ -12,7 +14,7 @@ pip install <path to project root>
 It was tested with Python 3.6, other Python versions might work as well.
 
 ### Windows
-To use this library on Windows, Npcap (or WinPcap) is required. Npcap can be downloaded from here: https://nmap.org/npcap/
+To use this library on Windows, Npcap (or WinPcap) is required. Npcap can be downloaded from here: [https://nmap.org/npcap/](https://nmap.org/npcap/)
 
 ### Linux
 On Linux, no additional installations are required since raw sockets are used instead. However, this requires running it with root permission.
