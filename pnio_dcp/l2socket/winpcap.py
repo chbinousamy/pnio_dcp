@@ -105,7 +105,7 @@ class WinPcap:
         Will raise an OSError if neither WinPcap nor Npcap can be found.
         """
         if self.__pcap_dll is None:
-            npcap_path = pathlib.Path(os.environ["WINDIR"], "System32", "Npcap2")
+            npcap_path = pathlib.Path(os.environ["WINDIR"], "System32", "Npcap")
             if npcap_path.exists():
                 os.environ['PATH'] = f"{npcap_path};{os.environ['PATH']}"
                 load_dll("Packet")
