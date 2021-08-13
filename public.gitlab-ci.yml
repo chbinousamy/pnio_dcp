@@ -1,12 +1,10 @@
-default:
+pages:
   tags:
     - docker
     - linux
   image:
     name: pandoc/alpine
     entrypoint: ["/bin/sh", "-c"]
-
-pages:
   script:
     - mkdir -p public
     - echo '<meta name="google-site-verification" content="ooqaohCgAywtsa97hQcmfXVsc5ZlgQaKSnXvTkSSLGE" />' > header.html
@@ -22,6 +20,10 @@ pages:
       allow_failure: true
 
 deploy_pypi:
+  tags:
+    - docker
+    - linux
+  image: python
   script:
     - python -m pip install setuptools wheel twine
     - python setup.py sdist bdist_wheel
