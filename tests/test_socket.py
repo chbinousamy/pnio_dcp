@@ -84,6 +84,15 @@ class TestPcapSocket:
         l2_socket = L2PcapSocket(ip)
         l2_socket.close()
 
+    def test_open_invalid_ip(self):
+        """
+        Test opening the Pcap-based socket with an invalid ip address.
+        Expected results: L2PcapSocket raises a ValueError.
+        """
+        invalid_ip = '192.0.2.0'
+        with pytest.raises(ValueError):
+            l2_socket = L2PcapSocket(invalid_ip)
+
     def test_send(self, l2_socket):
         """
         Test sending some dummy data from the socket.
