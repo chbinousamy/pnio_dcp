@@ -107,7 +107,8 @@ class DCP:
         """
         dst_mac = dcp_constants.PROFINET_MULTICAST_MAC_IDENTIFY
         option, suboption = Option.ALL
-        self.__send_request(dst_mac, FrameID.IDENTIFY_REQUEST, ServiceID.IDENTIFY, option, suboption)
+        response_delay = dcp_constants.RESPONSE_DELAY
+        self.__send_request(dst_mac, FrameID.IDENTIFY_REQUEST, ServiceID.IDENTIFY, option, suboption, response_delay=response_delay)
 
         # Receive all responses until the timeout occurs
         timeout = self.identify_all_timeout if timeout is None else timeout
@@ -129,7 +130,8 @@ class DCP:
         :rtype: Device
         """
         option, suboption = Option.ALL
-        self.__send_request(mac, FrameID.IDENTIFY_REQUEST, ServiceID.IDENTIFY, option, suboption)
+        response_delay = dcp_constants.RESPONSE_DELAY
+        self.__send_request(mac, FrameID.IDENTIFY_REQUEST, ServiceID.IDENTIFY, option, suboption, response_delay=response_delay)
 
         response = self.__read_response()
         if not response:
@@ -255,7 +257,7 @@ class DCP:
 
         return response
 
-    def __send_request(self, dst_mac, frame_id, service, option, suboption, value=None):
+    def __send_request(self, dst_mac, frame_id, service, option, suboption, value=None, response_delay=0):
         """
         Send a DCP request with the given option and sub-option and an optional payload (the given value)
         :param dst_mac: The mac address to send the to (as ':' separated string).
@@ -270,6 +272,8 @@ class DCP:
         :type suboption: int
         :param value: The DCP payload data to send, only used in 'set' functions
         :type value: bytes
+        :param response_delay: Used for multi-cast requests (eg. identify_all), must be 0 for all unicast-requests
+        :type response_delay: int
         """
         self.__xid += 1  # increment the XID wih each request (used to identify a transaction)
 
@@ -279,7 +283,7 @@ class DCP:
 
         # Create DCP frame
         service_type = ServiceType.REQUEST
-        dcp_packet = DCPPacket(frame_id, service, service_type, self.__xid, payload=block)
+        dcp_packet = DCPPacket(frame_id, service, service_type, self.__xid, response_delay=response_delay, payload=block)
 
         # Create ethernet frame
         ethernet_packet = EthernetPacket(dst_mac, self.src_mac, dcp_constants.ETHER_TYPE, payload=dcp_packet)
