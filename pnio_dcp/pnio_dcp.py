@@ -233,6 +233,31 @@ class DCP:
             raise DcpTimeoutError
         return response.name_of_station
 
+    def blink(self, mac):
+        """
+        Send a request to let the led of the device with the given mac address flash.
+        :param mac: mac address of the target device (as ':' separated string)
+        :type mac: string
+        :return: The response code to the request. Evaluates to false if the request failed. Use get_message() to get
+        a human-readable response message.
+        :rtype: ResponseCode
+        """
+        # Construct the DCPBlockRequest
+        value = bytes(BlockQualifier.RESERVED)
+        value += bytes(dcp_constants.LED_BLINK_VALUE)
+        option, suboption = Option.BLINK_LED
+        self.__send_request(mac, FrameID.GET_SET, ServiceID.SET, option, suboption, value)
+
+        response = self.__read_response(set_request=True)
+
+        if response is None:
+            logger.debug(f"Timeout: no answer from device with MAC {mac} to reset request.")
+            raise DcpTimeoutError
+        elif not response:
+            logger.debug(f"LED flashing unsuccessful: {response.get_message()}")
+
+        return response
+
     def reset_to_factory(self, mac):
         """
         Send a request to reset the communication parameters of the device with the given mac address to its factory
